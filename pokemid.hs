@@ -49,10 +49,10 @@ import Text.Read (readMaybe)
 data MidiEvent
   = Off Int
   | Begin
+  | End
   | Type Int Int
   | Midi Event
   | On Int
-  | End
   deriving (Eq, Ord, Show, Read, Data, Typeable)
 
 data AsmEvent
@@ -267,10 +267,12 @@ encode ch = go 0 0 . RTB.normalize where
               then DSpeed   spd
               else NoteType spd ntx nty
 
+-- | True if the two commands are the same type of command.
 sameConstructor :: AsmEvent -> AsmEvent -> Bool
 sameConstructor (Asm x) (Asm y) = toConstr x == toConstr y
 sameConstructor x       y       = toConstr x == toConstr y
 
+-- | True if the command is one that changes a setting for all events after it.
 isSetting :: AsmEvent -> Bool
 isSetting x = case x of
   NoteType _ _ _      -> True
@@ -308,7 +310,7 @@ showDrum = map toLower . filter (/= ' ') . show
 toAssembly :: AsmEvent -> String
 toAssembly asm = case asm of
   Note k len        -> f "note" [showKey k, show len]
-  DNote len d           -> f "dnote" [show len, showDrum d]
+  DNote len d       -> f "dnote" [show len, showDrum d]
   Rest len          -> f "rest" [show len]
   NoteType x y z    -> f "notetype" $ map show [x, y, z]
   DSpeed x          -> f "dspeed" [show x]
