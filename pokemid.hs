@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE DeriveFunctor, DeriveDataTypeable #-}
 module Main where
 
