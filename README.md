@@ -18,6 +18,9 @@ The MIDI file should be in the following format:
   * MIDI tempos are used to create tempo change events, inserted into the first
     track in the assembly file.
 
+  * To make a loop, use text events `begin` and `end` around the looping
+    portion. Without these the song will simply play once.
+
   * In addition to monophonic notes, you can insert engine commands which affect
     the sound using MIDI text events. Supported events are:
 
@@ -45,7 +48,8 @@ The MIDI file should be in the following format:
 
     where `duration` is the length of the note in beats or quarter notes,
     and `ticks` and `speed` are numbers in the range 1 to 15. If a length cannot
-    be exactly represented, the closest one less than it will be used.
+    be exactly represented, the closest one less than it will be used. Rests
+    between notes/events can be any length which is a sum of encodable lengths.
 
   * Channel 4 notes (percussion/noise) use the following pitches:
 
