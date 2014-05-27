@@ -1,23 +1,30 @@
 {-# LANGUAGE DeriveFunctor, DeriveDataTypeable #-}
+{- |
+
+Pokémon Red/Blue MIDI importer
+
+By Michael Tolly (<mailto:miketolly@gmail.com miketolly@gmail.com>)
+
+Done:
+
+  * Converts from MIDI durations to @notetype@/@dspeed@ and @(d)note@ commands.
+  * Converts from MIDI pitches to octave and note commands, with appropriate
+    octave offsets for Ch1/Ch2 and Ch3. For Ch4, associates pitches
+    with the available percussion sounds.
+  * Converts from MIDI tempos to tempo commands.
+  * Supports most note modifiers for the Red/Blue music engine
+    (@pitchbend@, @vibrato@, @duty@, @stereopanning@).
+  * Error checking on events in the middle of notes.
+
+Todo:
+
+  * Condense repeated blocks of code using @loopchannel@ or @callchannel@.
+  * Error checking for out-of-range numbers.
+  * @unknownmusic0xee@, used only for fade-in at the start of the Rocket HQ theme.
+  * Extend to @pokecrystal@?
+
+-}
 module Main where
-
--- Pokémon Red/Blue MIDI importer
--- Michael Tolly <miketolly@gmail.com>
-
--- Done:
--- * Converts from MIDI durations to notetype/dspeed and (d)note commands.
--- * Converts from MIDI pitches to octave and note commands, with appropriate
---   octave offsets for Ch1/Ch2 and Ch3. For Ch4, associates pitches
---   with the available percussion sounds.
--- * Converts from MIDI tempos to tempo commands.
--- * Supports all note modifiers for the Red/Blue music engine
---   (pitchbend, vibrato, duty, stereopanning).
--- * Error checking on events in the middle of notes.
--- Todo:
--- * Condense repeated blocks of code using loopchannel or callchannel.
--- * Error checking for out-of-range numbers.
--- * unknownmusic0xee, used for fade-in at the start of the Rocket HQ theme.
--- * Extend to pokecrystal?
 
 -- midi
 import qualified Sound.MIDI.File as F
@@ -45,6 +52,9 @@ import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 import Text.Read (readMaybe)
 
+-- | These constructors are ordered very intentionally: first 'Off', then
+-- 'Begin' and 'End', then 'Type' and 'Midi', then 'On'. This allows us to use
+-- 'RTB.normalize' to read simultaneous events in the correct order.
 data MidiEvent
   = Off Int
   | Begin
@@ -54,6 +64,7 @@ data MidiEvent
   | On Int
   deriving (Eq, Ord, Show, Read, Data, Typeable)
 
+-- | Constructor ordering doesn't matter because these go in a list anyway.
 data AsmEvent
   = Note Key Int
   | DNote Int Drum
@@ -160,6 +171,8 @@ defaultNote = FullNote
   , noteLength = undefined
   }
 
+-- | Like 'MidiEvent', the constructors are ordered intentionally: first
+-- 'SBegin' and 'SEnd', then 'STempo', then 'SNote'.
 data Simple a
   = SBegin
   | SEnd
