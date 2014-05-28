@@ -222,7 +222,7 @@ encodeLengths :: [(NN.Rational, (Int, Int))]
 encodeLengths = do
   let firstSpds = [12,6,8,4]
   spd <- firstSpds ++ filter (`notElem` firstSpds) [1..15]
-  tks <- [15,14..1]
+  tks <- [16,15..1]
   return ((fromIntegral tks / 4) * (fromIntegral spd / 12), (spd, tks))
 
 -- | The set of all note lengths that can be represented.

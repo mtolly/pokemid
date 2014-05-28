@@ -47,9 +47,10 @@ The MIDI file should be in the following format:
         duration = (ticks * speed) / 48
 
     where `duration` is the length of the note in beats or quarter notes,
-    and `ticks` and `speed` are numbers in the range 1 to 15. If a length cannot
-    be exactly represented, the closest one less than it will be used. Rests
-    between notes/events can be any length which is a sum of encodable lengths.
+    `ticks` is a number from 1 to 16, and `speed` is a number from 1 to 15.
+    If a length cannot be exactly represented, the closest one less than it will
+    be used. Rests between notes/events can be any length which is a sum of
+    encodable lengths.
 
   * Channel 4 notes (percussion/noise) use the following pitches:
 
