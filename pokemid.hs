@@ -269,13 +269,19 @@ encode ch = go 12 0 0 . RTB.normalize where
           -- lookupLE shortens the length if it cannot be represented exactly
         (spd, tks) = fromJust $ encodeNote ntSpeed newLength
         in rest ++ catMaybes
-          [ Just $ Asm $ case vibrato fn of (a, b, c) -> Vibrato a b c
-          , guard (ch `elem` [Ch1, Ch2]) >> Just (Asm $ Duty $ duty fn)
-          , Just $ Asm $ StereoPanning $ stereoPanning fn
+          [ do
+            guard $ ch /= Ch4
+            Just $ Asm $ case vibrato fn of (a, b, c) -> Vibrato a b c
+          , do
+            guard $ ch `elem` [Ch1, Ch2]
+            Just $ Asm $ Duty $ duty fn
+          , do
+            guard $ ch `elem` [Ch1, Ch2]
+            Just $ Asm $ StereoPanning $ stereoPanning fn
           , Just $ if ch == Ch4
             then DSpeed spd
             else uncurry (NoteType spd) $ noteType fn
-          , case pitch fn of Left (oct, _) -> Just $ Octave oct; _ -> Nothing
+          , either (Just . Octave . fst) (const Nothing) $ pitch fn
           , Asm . uncurry PitchBend <$> pitchBend fn
           , Just $ case pitch fn of
             Left (_, k) -> Note k tks
