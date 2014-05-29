@@ -40,13 +40,19 @@ import qualified Numeric.NonNegative.Class as NNC
 import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Set as Set
+-- split
+import Data.List.Split (splitOn)
 -- base
 import Control.Applicative ((<$>), (<|>))
 import Control.Monad (forM_, guard, unless)
 import Data.Char (toLower)
 import Data.Data (Data, Typeable, toConstr)
-import Data.List (intercalate, isInfixOf)
+import Data.List
+  ( intercalate, isInfixOf, inits, tails
+  , permutations, sortBy
+  )
 import Data.Maybe (fromMaybe, mapMaybe, listToMaybe, catMaybes, fromJust)
+import Data.Ord (comparing)
 import System.Environment (getArgs, getProgName)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
@@ -361,12 +367,66 @@ data Command
   | CallChannel String
   deriving (Eq, Ord, Show, Read)
 
+cmdSize :: Command -> Int
+cmdSize c = case c of
+  Cmd asm -> case asm of
+    Note     {} -> 1
+    DNote    {} -> 2
+    Rest     {} -> 1
+    NoteType {} -> 2
+    DSpeed   {} -> 1
+    Octave   {} -> 1
+    Asm e -> case e of
+      Vibrato       {} -> 3
+      Duty          {} -> 2
+      StereoPanning {} -> 2
+      PitchBend     {} -> 3
+      Tempo         {} -> 3
+  EndChannel -> 1
+  LoopChannel {} -> 4
+  CallChannel {} -> 3
+
+-- | Gets (most) sublists of the given list which could be valid subroutines,
+-- which means they don't break up any pitchbend/note combos.
+subchunks :: [Command] -> [[Command]]
+subchunks cmds = let
+  isOkay []  = False
+  isOkay sub = let
+    chunks = sub : splitOn sub cmds
+    okayEnd chunk = case reverse chunk of
+      Cmd (Asm (PitchBend {})) : _ -> False
+      _                            -> True
+    in all okayEnd chunks
+  in filter isOkay $ inits cmds >>= tails
+
 -- | Breaks subroutines out of an assembly sequence to shorten it.
 condense
   :: String                             -- ^ The chunk name
   -> [Command]                          -- ^ A sequence of instructions
   -> ([Command], [(String, [Command])]) -- ^ A main chunk and some subroutines
-condense name cmds = (cmds, []) -- TODO
+condense name cmds = let
+  subSize = sum . map cmdSize
+  possibleSubs = take 4 $ sortBy (comparing $ negate . subSize)
+    $ filter doesShorten $ subchunks cmds
+  doesShorten sub = let
+    len = subSize sub
+    reps = length (splitOn sub cmds) - 1
+    in len * reps > cmdSize (CallChannel {}) * reps + cmdSize EndChannel + len
+  subCombos = filter (not . null) $ permutations possibleSubs >>= tails
+  applied = do
+    subs <- subCombos
+    let realSubs = map (++ [EndChannel]) subs
+        subNames = [ name ++ "_" ++ show (n :: Int) | n <- [0..] ]
+        newMain = apply $ zip subNames subs
+        score = sum $ map subSize $ newMain : realSubs
+    return (score, (newMain, zip subNames realSubs))
+  apply namedSubs = foldl makeSub cmds namedSubs
+  makeSub :: [Command] -> (String, [Command]) -> [Command]
+  makeSub cmain (subName, sub) = intercalate [CallChannel subName] $ splitOn sub cmain
+  best = map snd $ sortBy (comparing fst) applied
+  in case best of
+    []      -> (cmds, [])
+    res : _ -> res
 
 printCmds :: String -> [Command] -> IO ()
 printCmds name cmds = do
