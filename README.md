@@ -27,7 +27,9 @@ Future work:
   * Understand/support `unknownmusic0xee`, an event used only in the Rocket
     HQ theme (for the odd fade-in notes at the start).
 
-  * Extend to the [pokecrystal] project?
+  * Extend to the [pokecrystal][] project?
+
+[pokecrystal]: https://github.com/kanzure/pokecrystal
 
   * Better algorithm for finding subroutines, and possibly using `loopchannel`
     to further shorten the assembly code.
