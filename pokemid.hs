@@ -360,6 +360,29 @@ showCommand cmd = case cmd of
   CallChannel lbl     -> f "callchannel" [lbl]
   where f c args = c ++ " " ++ intercalate ", " args
 
+-- | Finds settings that have the same value at the end of the intro,
+-- the start of the loop, and the end of the loop. Such settings can be removed
+-- from the start of the loop.
+cleanBeginLoop :: ([AsmEvent], [AsmEvent]) -> ([AsmEvent], [AsmEvent])
+cleanBeginLoop = let
+  dummySettings =
+    [ NoteType {}
+    , DSpeed {}
+    , Octave {}
+    , Asm $ Vibrato {}
+    , Asm $ Duty {}
+    , Asm $ StereoPanning {}
+    , Asm $ Tempo {}
+    ]
+  clean setting (b, l) = let
+    fnb = filter (sameConstructor setting) b
+    fnl = filter (sameConstructor setting) l
+    in case (reverse fnb, fnl, reverse fnl) of
+      (x : _, y : _, z : _) | x == y && x == z
+        -> (b, cleanEvent x l)
+      _ -> (b, l)
+  in foldr (.) id $ map clean dummySettings
+
 data Command
   = Cmd AsmEvent
   | EndChannel
@@ -445,14 +468,16 @@ main = do
           []     -> Ch1
           ch : _ -> ch
         (begin, loop) = splitLoop $ simplify chan trk
-        asmCommands = map Cmd . cleanAssembly . encode chan
+        asmEvents = cleanAssembly . encode chan
+        asmCommands = map Cmd . asmEvents
         in case loop of
           Nothing -> do
             let (chunk, subs) = condense name $ asmCommands begin ++ [EndChannel]
             forM_ ((name, chunk) : subs) $ uncurry printCmds
           Just l -> do
-            let (bchunk, bsubs) = condense name $ asmCommands begin
-                (lchunk, lsubs) = condense loopName $ asmCommands l ++ [LoopChannel 0 loopName]
+            let (begin', loop') = cleanBeginLoop (asmEvents begin, asmEvents l)
+                (bchunk, bsubs) = condense name $ map Cmd begin'
+                (lchunk, lsubs) = condense loopName $ map Cmd loop' ++ [LoopChannel 0 loopName]
                 loopName = name ++ "_loop"
                 allParts = bsubs ++ [(name, bchunk), (loopName, lchunk)] ++ lsubs
                 -- This lets the beginning flow directly into the loop
