@@ -42,7 +42,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 import qualified Data.Set as Set
 -- base
 import Control.Applicative ((<$>), (<|>))
-import Control.Monad (forM_, guard)
+import Control.Monad (forM_, guard, unless)
 import Data.Char (toLower)
 import Data.Data (Data, Typeable, toConstr)
 import Data.List (intercalate, isInfixOf)
@@ -334,63 +334,45 @@ showKey k = case show k of
 showDrum :: Drum -> String
 showDrum = map toLower . filter (/= ' ') . show
 
-toAssembly :: AsmEvent -> String
-toAssembly asm = case asm of
-  Note k len        -> f "note" [showKey k, show len]
-  DNote len d       -> f "dnote" [show len, showDrum d]
-  Rest len          -> f "rest" [show len]
-  NoteType x y z    -> f "notetype" $ map show [x, y, z]
-  DSpeed x          -> f "dspeed" [show x]
-  Octave x          -> f "octave" [show x]
-  Asm evt -> case evt of
-    Vibrato x y z   -> f "vibrato" $ map show [x, y, z]
-    Duty x          -> f "duty" [show x]
-    StereoPanning x -> f "stereopanning" [show x]
-    Tempo x y       -> f "tempo" $ map show [x, y]
-    PitchBend x y   -> f "pitchbend" $ map show [x, y]
-  where f cmd args = cmd ++ " " ++ intercalate ", " args
+showCommand :: Command -> String
+showCommand cmd = case cmd of
+  Cmd asm -> case asm of
+    Note k len        -> f "note" [showKey k, show len]
+    DNote len d       -> f "dnote" [show len, showDrum d]
+    Rest len          -> f "rest" [show len]
+    NoteType x y z    -> f "notetype" $ map show [x, y, z]
+    DSpeed x          -> f "dspeed" [show x]
+    Octave x          -> f "octave" [show x]
+    Asm evt -> case evt of
+      Vibrato x y z   -> f "vibrato" $ map show [x, y, z]
+      Duty x          -> f "duty" [show x]
+      StereoPanning x -> f "stereopanning" [show x]
+      Tempo x y       -> f "tempo" $ map show [x, y]
+      PitchBend x y   -> f "pitchbend" $ map show [x, y]
+  EndChannel          -> f "endchannel" []
+  LoopChannel n lbl   -> f "loopchannel" [show n, lbl]
+  CallChannel lbl     -> f "callchannel" [lbl]
+  where f c args = c ++ " " ++ intercalate ", " args
 
-data CmdCall
-  = Cmd  AsmEvent
-  | Call String
+data Command
+  = Cmd AsmEvent
+  | EndChannel
+  | LoopChannel Int String
+  | CallChannel String
   deriving (Eq, Ord, Show, Read)
 
 -- | Breaks subroutines out of an assembly sequence to shorten it.
 condense
   :: String                             -- ^ The chunk name
-  -> [AsmEvent]                         -- ^ A sequence of instructions
-  -> ([CmdCall], [(String, [CmdCall])]) -- ^ The main loop, and some subroutines
-condense name cmds = (map Cmd cmds, []) -- TODO
+  -> [Command]                          -- ^ A sequence of instructions
+  -> ([Command], [(String, [Command])]) -- ^ A main chunk and some subroutines
+condense name cmds = (cmds, []) -- TODO
 
-printCmd :: CmdCall -> IO ()
-printCmd (Cmd  evt) = putStrLn $ '\t' : toAssembly evt
-printCmd (Call lbl) = putStrLn $ "\tcallchannel " ++ lbl
-
-printLoop :: String -> [CmdCall] -> IO ()
-printLoop name cmds = do
-  putStrLn $ name ++ "::"
-  mapM_ printCmd cmds
-  putStrLn $ "\tloopchannel 0, " ++ name
+printCmds :: String -> [Command] -> IO ()
+printCmds name cmds = do
+  unless (null name) $ putStrLn $ name ++ "::"
+  forM_ cmds $ \cmd -> putStrLn $ '\t' : showCommand cmd
   putStrLn ""
-
-printFinite :: String -> [CmdCall] -> IO ()
-printFinite name cmds = do
-  putStrLn $ name ++ "::"
-  mapM_ printCmd cmds
-  putStrLn "\tendchannel"
-  putStrLn ""
-
-printIntro :: String -> [CmdCall] -> IO ()
-printIntro name cmds = do
-  putStrLn $ name ++ "::"
-  mapM_ printCmd cmds
-  putStrLn ""
-
-printShort :: (String -> [CmdCall] -> IO ()) -> String -> [AsmEvent] -> IO ()
-printShort printFn name evts = case condense name evts of
-  (cmds, subs) -> do
-    printFn name cmds
-    forM_ subs $ \(sname, scmds) -> printFinite sname scmds
 
 main :: IO ()
 main = do
@@ -403,13 +385,18 @@ main = do
           []     -> Ch1
           ch : _ -> ch
         (begin, loop) = splitLoop $ simplify chan trk
-        asmEvents = cleanAssembly . encode chan
+        asmCommands = map Cmd . cleanAssembly . encode chan
         in case loop of
           Nothing -> do
-            printShort printFinite name $ asmEvents begin
+            let (chunk, subs) = condense name $ asmCommands begin ++ [EndChannel]
+            forM_ ((name, chunk) : subs) $ uncurry printCmds
           Just l -> do
-            printShort printIntro name $ asmEvents begin
-            printShort printLoop (name ++ "_loop") $ asmEvents l
+            let (bchunk, bsubs) = condense name $ asmCommands begin
+                (lchunk, lsubs) = condense loopName $ asmCommands l ++ [LoopChannel 0 loopName]
+                loopName = name ++ "_loop"
+                allParts = bsubs ++ [(name, bchunk), (loopName, lchunk)] ++ lsubs
+                -- This lets the beginning flow directly into the loop
+            forM_ allParts $ uncurry printCmds
     _ -> do
       prog <- getProgName
       hPutStrLn stderr $ "Usage: "++prog++" in.mid > out.asm"
