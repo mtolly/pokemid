@@ -41,7 +41,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Set as Set
 -- base
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<|>))
 import Control.Monad (forM_, guard)
 import Data.Char (toLower)
 import Data.Data (Data, Typeable, toConstr)
@@ -229,6 +229,15 @@ encodeLengths = do
 encodeable :: Set.Set NN.Rational
 encodeable = Set.fromList $ map fst encodeLengths
 
+encodeNote
+  :: Int         -- ^ a preferred speed (speed of the last encoded note)
+  -> NN.Rational -- ^ the note duration to encode
+  -> Maybe (Int, Int)
+encodeNote lastSpeed rat = let
+  lengths = map snd $ filter ((rat ==) . fst) encodeLengths
+  preferred = filter ((lastSpeed ==) . fst) lengths
+  in listToMaybe preferred <|> listToMaybe lengths
+
 -- | Tries to combine encodeable lengths to a make a rest length.
 encodeSum :: NN.Rational -> Maybe [(Int, Int)]
 encodeSum 0   = Just []
@@ -240,25 +249,25 @@ encodeSum rat = case lookup rat encodeLengths of
     where f (r, enc) = fmap (enc :) $ encodeSum $ rat - r
 
 encode :: Channel -> RTB.T NN.Rational (Simple NN.Rational) -> [AsmEvent]
-encode ch = go 0 0 . RTB.normalize where
+encode ch = go 12 0 0 . RTB.normalize where
   -- like RTB.decreaseStart but errors instead of flooring at 0
   decreaseStart t rtb = case RTB.viewL rtb of
     Nothing -> RTB.empty
     Just ((dt, x), rtb') -> if t <= dt
       then RTB.cons (dt - t) x rtb'
       else error "encode: note overlaps other event"
-  go ntx nty rtb = case RTB.viewL rtb of
+  go ntSpeed ntVolume ntFade rtb = case RTB.viewL rtb of
     Nothing -> []
     Just ((dt, x), rtb') -> case x of
       SBegin -> error "encode: found loop beginning"
       SEnd -> rest
-      STempo a b -> rest ++ [Asm $ Tempo a b] ++ go ntx nty rtb'
+      STempo a b -> rest ++ [Asm $ Tempo a b] ++ go ntSpeed ntVolume ntFade rtb'
       SNote fn -> let
         newLength = fromMaybe
           (error $ "note length too short to encode: " ++ show (noteLength fn))
           (Set.lookupLE (noteLength fn) encodeable)
           -- lookupLE shortens the length if it cannot be represented exactly
-        (spd, tks) = fromJust $ lookup newLength encodeLengths
+        (spd, tks) = fromJust $ encodeNote ntSpeed newLength
         in rest ++ catMaybes
           [ Just $ Asm $ case vibrato fn of (a, b, c) -> Vibrato a b c
           , guard (ch `elem` [Ch1, Ch2]) >> Just (Asm $ Duty $ duty fn)
@@ -271,13 +280,13 @@ encode ch = go 0 0 . RTB.normalize where
           , Just $ case pitch fn of
             Left (_, k) -> Note k tks
             Right drum  -> DNote tks drum
-          ] ++ uncurry go (noteType fn) (decreaseStart newLength rtb')
+          ] ++ uncurry (go spd) (noteType fn) (decreaseStart newLength rtb')
       where rest = case encodeSum dt of
               Nothing -> error $ "encode: couldn't make rest length " ++ show dt
               Just ps -> concatMap (\(spd, tks) -> [restSpeed spd, Rest tks]) ps
             restSpeed spd = if ch == Ch4
               then DSpeed   spd
-              else NoteType spd ntx nty
+              else NoteType spd ntVolume ntFade
 
 -- | True if the two commands are the same type of command.
 sameConstructor :: AsmEvent -> AsmEvent -> Bool
