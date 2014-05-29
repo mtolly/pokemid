@@ -350,6 +350,48 @@ toAssembly asm = case asm of
     PitchBend x y   -> f "pitchbend" $ map show [x, y]
   where f cmd args = cmd ++ " " ++ intercalate ", " args
 
+data CmdCall
+  = Cmd  AsmEvent
+  | Call String
+  deriving (Eq, Ord, Show, Read)
+
+-- | Breaks subroutines out of an assembly sequence to shorten it.
+condense
+  :: String                             -- ^ The chunk name
+  -> [AsmEvent]                         -- ^ A sequence of instructions
+  -> ([CmdCall], [(String, [CmdCall])]) -- ^ The main loop, and some subroutines
+condense name cmds = (map Cmd cmds, []) -- TODO
+
+printCmd :: CmdCall -> IO ()
+printCmd (Cmd  evt) = putStrLn $ '\t' : toAssembly evt
+printCmd (Call lbl) = putStrLn $ "\tcallchannel " ++ lbl
+
+printLoop :: String -> [CmdCall] -> IO ()
+printLoop name cmds = do
+  putStrLn $ name ++ "::"
+  mapM_ printCmd cmds
+  putStrLn $ "\tloopchannel 0, " ++ name
+  putStrLn ""
+
+printFinite :: String -> [CmdCall] -> IO ()
+printFinite name cmds = do
+  putStrLn $ name ++ "::"
+  mapM_ printCmd cmds
+  putStrLn "\tendchannel"
+  putStrLn ""
+
+printIntro :: String -> [CmdCall] -> IO ()
+printIntro name cmds = do
+  putStrLn $ name ++ "::"
+  mapM_ printCmd cmds
+  putStrLn ""
+
+printShort :: (String -> [CmdCall] -> IO ()) -> String -> [AsmEvent] -> IO ()
+printShort printFn name evts = case condense name evts of
+  (cmds, subs) -> do
+    printFn name cmds
+    forM_ subs $ \(sname, scmds) -> printFinite sname scmds
+
 main :: IO ()
 main = do
   argv <- getArgs
@@ -361,19 +403,13 @@ main = do
           []     -> Ch1
           ch : _ -> ch
         (begin, loop) = splitLoop $ simplify chan trk
-        asmLines = map toAssembly . cleanAssembly . encode chan
-        printAsm = mapM_ (putStrLn . ('\t' : )) . asmLines
-        in do
-          putStrLn $ name ++ "::"
-          printAsm begin
-          case loop of
-            Nothing -> putStrLn "\tendchannel"
-            Just l -> do
-              putStrLn ""
-              putStrLn $ name ++ "_loop::"
-              printAsm l
-              putStrLn $ "\tloopchannel 0, "++name++"_loop"
-          putStrLn ""
+        asmEvents = cleanAssembly . encode chan
+        in case loop of
+          Nothing -> do
+            printShort printFinite name $ asmEvents begin
+          Just l -> do
+            printShort printIntro name $ asmEvents begin
+            printShort printLoop (name ++ "_loop") $ asmEvents l
     _ -> do
       prog <- getProgName
       hPutStrLn stderr $ "Usage: "++prog++" in.mid > out.asm"
