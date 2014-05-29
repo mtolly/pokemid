@@ -1,5 +1,5 @@
 name:               pokemid
-version:            0.1
+version:            0.2
 synopsis:           Import MIDI music files into Pokémon Red/Blue
 homepage:           https://github.com/mtolly/pokemid
 license:            PublicDomain
