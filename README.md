@@ -62,8 +62,9 @@ The MIDI file should be in the following format:
     All of these events affect all notes that come after them, except the
     `pitchbend` event which affects only the next (or coinciding) note.
 
-    Note that `notetype` does not require the first parameter, though you can
-    supply it if you wish. Note encoding speeds are chosen by the program
+    Note that `notetype` does not require you to supply a note encoding
+    speed, though you can if you wish (before the volume and fade
+    parameters). It is ignored because speeds are chosen by the program
     automatically.
 
     Events cannot be placed in the middle of a note, only at its beginning/end
