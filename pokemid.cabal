@@ -27,7 +27,7 @@ executable poke2mid
   other-modules:      Assembly
                       Scan
                       Parse
-                      AssemblyGraph
+                      Graph
                       AssemblyToMidi
                       Midi
   build-depends:      base           >= 4.6     && < 4.8

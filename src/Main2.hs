@@ -3,7 +3,7 @@ module Main where
 import qualified Scan
 import qualified Parse
 import qualified Midi
-import qualified AssemblyGraph
+import qualified Graph
 import qualified AssemblyToMidi
 import Control.Applicative ((<$>))
 import qualified Sound.MIDI.File.Save as Save
@@ -13,7 +13,7 @@ import qualified Data.Map as Map
 main :: IO ()
 main = do
   [fin, fout] <- getArgs
-  graph <- AssemblyGraph.makeGraph . Parse.parse . Scan.scan <$> readFile fin
+  graph <- Graph.makeGraph . Parse.parse . Scan.scan <$> readFile fin
   let prefix = head
         [ reverse pre
         | s <- Map.keys graph

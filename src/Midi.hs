@@ -20,7 +20,7 @@ data Event
   = Off Int
   | Begin
   | End
-  | Type Int Int
+  | NoteType Int Int
   | Vibrato Int Int Int
   | Duty Int
   | StereoPanning Int
@@ -42,8 +42,8 @@ getEvent e = case e of
       ("end"          , Just []       ) -> Just End
       ("vibrato"      , Just [x, y, z]) -> Just $ Vibrato x y z
       ("duty"         , Just [x]      ) -> Just $ Duty x
-      ("notetype"     , Just [_, y, z]) -> Just $ Type y z
-      ("notetype"     , Just [y, z]   ) -> Just $ Type y z
+      ("notetype"     , Just [_, y, z]) -> Just $ NoteType y z
+      ("notetype"     , Just [y, z]   ) -> Just $ NoteType y z
       ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
       _                                 -> Nothing
@@ -57,7 +57,7 @@ fromEvent e = case e of
   Off p -> voice0 $ V.NoteOff (V.toPitch p) (V.toVelocity 0)
   Begin -> E.MetaEvent $ M.TextEvent "begin"
   End -> E.MetaEvent $ M.TextEvent "end"
-  Type x y -> textCmd "notetype" [x, y]
+  NoteType x y -> textCmd "notetype" [x, y]
   Vibrato x y z -> textCmd "vibrato" [x, y, z]
   Duty x -> textCmd "duty" [x]
   StereoPanning x -> textCmd "stereopanning" [x]

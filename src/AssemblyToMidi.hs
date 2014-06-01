@@ -1,7 +1,7 @@
 module AssemblyToMidi where
 
 import Assembly
-import AssemblyGraph
+import Graph
 import qualified Midi as M
 -- base
 import Control.Monad (guard)
@@ -34,7 +34,7 @@ loopFormToMidi ch (begin, loop) = let
           go inLoop speed octave is
       Rest tks -> RTB.delay (ticksToLen tks) $ go inLoop speed octave is
       NoteType speed' vol fade ->
-        RTB.cons 0 (M.Type vol fade) $ go inLoop speed' octave is
+        RTB.cons 0 (M.NoteType vol fade) $ go inLoop speed' octave is
       DSpeed speed' -> go inLoop speed' octave is
       Octave octave' -> go inLoop speed octave' is
       Vibrato x y z -> RTB.cons 0 (M.Vibrato x y z) $ go inLoop speed octave is
