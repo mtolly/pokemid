@@ -8,10 +8,17 @@ import qualified AssemblyToMidi
 import Control.Applicative ((<$>))
 import qualified Sound.MIDI.File.Save as Save
 import System.Environment (getArgs)
+import qualified Data.Map as Map
 
 main :: IO ()
 main = do
-  [prefix, fin, fout] <- getArgs
+  [fin, fout] <- getArgs
   graph <- AssemblyGraph.makeGraph . Parse.parse . Scan.scan <$> readFile fin
-  let mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
+  let prefix = head
+        [ reverse pre
+        | s <- Map.keys graph
+        , d : 'h' : 'C' : pre <- [reverse s]
+        , d `elem` "1234"
+        ]
+      mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
   Save.toFile fout mid
