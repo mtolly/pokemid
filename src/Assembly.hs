@@ -1,15 +1,16 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor, DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wall #-}
 module Assembly where
 
 import Data.Char (toLower, toUpper)
+import Data.Data (Data, Typeable)
 import Data.List (intercalate)
 
 data Channel = Ch1 | Ch2 | Ch3 | Ch4
   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
 data Key = C_ | Cs | D_ | Ds | E_ | F_ | Fs | G_ | Gs | A_ | As | B_
-  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+  deriving (Eq, Ord, Show, Read, Enum, Bounded, Data, Typeable)
 
 data Drum
   = Snare1
@@ -31,7 +32,7 @@ data Drum
   | MutedSnare2
   | MutedSnare3
   | MutedSnare4
-  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+  deriving (Eq, Ord, Show, Read, Enum, Bounded, Data, Typeable)
 
 type Ticks = Int
 
@@ -47,7 +48,7 @@ data Instruction t
   | StereoPanning Int
   | PitchBend     Int Int
   | Tempo         Int Int
-  deriving (Eq, Ord, Show, Read, Functor)
+  deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
 data Control label
   = Label       label
