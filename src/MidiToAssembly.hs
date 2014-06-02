@@ -112,14 +112,17 @@ encodeNote lastSpeed rat = let
   in listToMaybe preferred <|> listToMaybe lengths
 
 -- | Tries to combine encodeable lengths to a make a rest length.
-encodeSum :: NN.Rational -> Maybe [(Int, Int)]
-encodeSum 0   = Just []
-encodeSum rat = case lookup rat encodeLengths of
+encodeSum
+  :: Int         -- ^ a preferred speed (speed of the last encoded note)
+  -> NN.Rational -- ^ the note duration to encode
+  -> Maybe [(Int, Int)]
+encodeSum _         0   = Just []
+encodeSum lastSpeed rat = case encodeNote lastSpeed rat of
   Just p  -> Just [p]
   Nothing -> case filter ((< rat) . fst) encodeLengths of
     [] -> Nothing
     ps -> listToMaybe $ mapMaybe f ps
-    where f (r, enc) = fmap (enc :) $ encodeSum $ rat - r
+    where f (r, enc) = fmap (enc :) $ encodeSum (fst enc) $ rat - r
 
 encode ::
   A.Channel -> RTB.T NN.Rational (Simple NN.Rational) -> [A.Instruction Int]
@@ -135,13 +138,13 @@ encode ch = go 12 0 0 . RTB.normalize where
     Just ((dt, x), rtb') -> case x of
       Begin -> error "encode: found loop beginning"
       End -> rest
-      Tempo a b -> rest ++ [A.Tempo a b] ++ go ntSpeed ntVolume ntFade rtb'
+      Tempo a b -> rest ++ [A.Tempo a b] ++ go defaultSpeed ntVolume ntFade rtb'
       Note fn -> let
         newLength = fromMaybe
           (error $ "note length too short to encode: " ++ show (noteLength fn))
           (Set.lookupLE (noteLength fn) encodeable)
           -- lookupLE shortens the length if it cannot be represented exactly
-        (spd, tks) = fromJust $ encodeNote ntSpeed newLength
+        (spd, tks) = fromJust $ encodeNote defaultSpeed newLength
         in rest ++ catMaybes
           [ do
             guard $ ch /= A.Ch4
@@ -161,9 +164,15 @@ encode ch = go 12 0 0 . RTB.normalize where
             Left (_, k) -> A.Note k tks
             Right drum  -> A.DNote tks drum
           ] ++ uncurry (go spd) (noteType fn) (decreaseStart newLength rtb')
-      where rest = case encodeSum dt of
+      where rest = case encodeSum ntSpeed dt of
               Nothing -> error $ "encode: couldn't make rest length " ++ show dt
               Just ps -> concatMap (\(spd, tks) -> [restSpeed spd, A.Rest tks]) ps
             restSpeed spd = if ch == A.Ch4
               then A.DSpeed   spd
               else A.NoteType spd ntVolume ntFade
+            getSpeed (A.DSpeed   s    ) = Just s
+            getSpeed (A.NoteType s _ _) = Just s
+            getSpeed _                  = Nothing
+            defaultSpeed = case mapMaybe getSpeed $ reverse rest of
+              spd : _ -> spd
+              []      -> ntSpeed

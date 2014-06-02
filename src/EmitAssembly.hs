@@ -30,10 +30,10 @@ possibleSubs asm = let
     applyNext x = splitOn (sub ++ [x]) asm
     -- TODO: efficient applyNext, using (chunk:chunks) but correctly handling
     -- adjacent appearances of sub
-    in case consistentNext of
+    in (if isLong then (sub :) else id) $ case consistentNext of
       Just next -> growSub (chunk : map tail chunks) (sub ++ [next])
-      -- ^ We don't care about sub because adding next is strictly better.
-      Nothing -> (if isLong then (sub :) else id) $ do
+      -- Do we need to add sub 2 lines above? Not sure if it's strictly worse
+      Nothing -> do
         next <- possibleNexts
         growSub (applyNext next) (sub ++ [next])
   in filter (not . isCall) (nub asm) >>= \inst ->
