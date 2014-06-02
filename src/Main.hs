@@ -18,7 +18,6 @@ import Control.Arrow (second)
 import Control.Monad (forM_)
 import System.IO (stderr, hPutStrLn)
 import System.Exit (exitFailure)
-import Data.List (isInfixOf)
 
 main :: IO ()
 main = do
@@ -27,9 +26,7 @@ main = do
     [fmid] -> do
       trks <- Midi.getTracks <$> Load.fromFile fmid
       forM_ trks $ \(name, trk) -> let
-        chan = case [ c | c <- [minBound..maxBound], show c `isInfixOf` name] of
-          []     -> Assembly.Ch1
-          ch : _ -> ch
+        chan = Midi.getNamedChannel name
         (begin, loop) = MidiToAssembly.splitLoop $ MidiToAssembly.simplify chan trk
         beginLoop = case loop of
           Nothing -> (asmEvents begin, Nothing)

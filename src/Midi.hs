@@ -1,5 +1,6 @@
 module Midi where
 
+import Assembly (Channel(..))
 -- midi
 import qualified Sound.MIDI.File as F
 import qualified Sound.MIDI.File.Event as E
@@ -14,7 +15,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- base
 import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
-import Data.List (intercalate)
+import Data.List (intercalate, isInfixOf)
 
 data Event
   = Off Int
@@ -52,8 +53,8 @@ getEvent e = case e of
       quotRem (round $ (toRational t / 1000000) * 320) 256
   _ -> Nothing
 
-fromEvent :: Event -> E.T
-fromEvent e = case e of
+fromEvent :: Channel -> Event -> E.T
+fromEvent ch e = case e of
   Off p -> voice0 $ V.NoteOff (V.toPitch p) (V.toVelocity 0)
   Begin -> E.MetaEvent $ M.TextEvent "begin"
   End -> E.MetaEvent $ M.TextEvent "end"
@@ -64,7 +65,7 @@ fromEvent e = case e of
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x y -> E.MetaEvent $ M.SetTempo $ round $ (toRational (x * 256 + y) / 320) * 1000000
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
-  where voice0 = E.MIDIEvent . C.Cons (C.toChannel 0) . C.Voice
+  where voice0 = E.MIDIEvent . C.Cons (C.toChannel $ if ch == Ch4 then 9 else 0) . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
           then ""
           else " " ++ intercalate ", " (map show args)
@@ -88,14 +89,23 @@ getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
     _ -> []
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 
+getNamedChannel :: String -> Channel
+getNamedChannel name = case [ c | c <- [Ch1 .. Ch4], show c `isInfixOf` name] of
+  []     -> Ch1
+  ch : _ -> ch
+
 fromTracks :: [(String, RTB.T NN.Rational Event)] -> F.T
 fromTracks [] = F.Cons F.Parallel (F.Ticks 480) []
 fromTracks ((name, trk) : trks) = let
   (tempos, rest) = RTB.partition isTempo trk
   isTempo (Tempo _ _) = True
   isTempo _           = False
-  tempoTrack = fmap fromEvent tempos
-  otherTracks = [ RTB.cons 0 (E.MetaEvent $ M.TrackName n) $ fmap fromEvent t | (n, t) <- (name, rest) : trks ]
+  tempoTrack = fmap (fromEvent Ch1) tempos
+  otherTracks =
+    [ RTB.cons 0 (E.MetaEvent $ M.TrackName n)
+      $ fmap (fromEvent $ getNamedChannel n) t
+    | (n, t) <- (name, rest) : trks
+    ]
   in F.Cons F.Parallel (F.Ticks 480)
     $ map (RTB.discretize . RTB.mapTime (* 480))
     $ tempoTrack : otherTracks
