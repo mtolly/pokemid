@@ -19,7 +19,11 @@ possibleSubs asm = let
   growSub (chunk : chunks) sub = let
     isLong = sum (map asmSize sub) > asmSize (Left $ CallChannel {})
     -- consistentNext is (Just x) if all of chunks start with x
-    consistentNext = mapM listToMaybe chunks >>= getUniform
+    consistentNext = do
+      nextInsts <- mapM listToMaybe chunks
+      inst <- getUniform nextInsts
+      guard $ not $ isCall inst
+      Just inst
     getUniform []       = Nothing
     getUniform (x : xs) = guard (all (== x) xs) >> Just x
     possibleNexts = filter (not . isCall) $ nub $ mapMaybe listToMaybe chunks
