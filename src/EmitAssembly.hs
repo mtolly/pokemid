@@ -16,19 +16,16 @@ possibleSubs asm = let
   growSub []                     _   = error "possibleSubs: no code???"
   growSub [_]                    _   = error "possibleSubs: sub doesn't appear?"
   growSub [_, _]                 _   = [] -- sub only appears once
-  growSub split@(chunk : chunks) sub = let
+  growSub (chunk : chunks) sub = let
     isLong = sum (map asmSize sub) > asmSize (Left $ CallChannel {})
     -- consistentNext is (Just x) if all of chunks start with x
     consistentNext = mapM listToMaybe chunks >>= getUniform
     getUniform []       = Nothing
     getUniform (x : xs) = guard (all (== x) xs) >> Just x
     possibleNexts = filter (not . isCall) $ nub $ mapMaybe listToMaybe chunks
-    applyNext x = let
-      go []                              = []
-      go [c]                             = [c]
-      go (c1 : c2@(y : _) : cs) | x == y = c1 : go (c2 : cs)
-      go (c1 : c2         : cs)          = go $ (c1 ++ c2) : cs
-      in go split
+    applyNext x = splitOn (sub ++ [x]) asm
+    -- TODO: efficient applyNext, using (chunk:chunks) but correctly handling
+    -- adjacent appearances of sub
     in case consistentNext of
       Just next -> growSub (chunk : map tail chunks) (sub ++ [next])
       -- ^ We don't care about sub because adding next is strictly better.
