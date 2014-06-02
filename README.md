@@ -1,8 +1,8 @@
-# Pokémon Red/Blue MIDI importer
+# Pokémon Red/Blue MIDI music converter
 
 This is a tool for the [Pokémon Red/Blue disassembly project][pokered], which
-allows importing MIDI files into the game's music engine to replace existing
-tracks.
+allows editing the music tracks by exporting them to MIDI files and then
+importing them back into assembly.
 
 [pokered]: https://github.com/iimarckus/pokered
 
@@ -19,29 +19,29 @@ Features:
   * Supports the following note modifiers: `notetype`, `pitchbend`, `vibrato`,
     `duty`, and `stereopanning`.
 
-  * Finds some repeated sections of assembly events and breaks them out into
+  * Finds repeated sections of assembly events and breaks them out into
     subroutines, called with `callchannel`, to save ROM space.
 
 Future work:
 
   * Understand/support `unknownmusic0xee`, an event used only in the Rocket
-    HQ theme (for the odd fade-in notes at the start).
+    HQ theme intro.
 
   * Extend to the [pokecrystal][] project?
 
 [pokecrystal]: https://github.com/kanzure/pokecrystal
 
-  * Better algorithm for finding subroutines, and possibly using `loopchannel`
-    to further shorten the assembly code.
+  * Possibly use `loopchannel` to further shorten the assembly code.
 
   * Better error reporting: errors should have MIDI positions and better
     explanations.
 
 ## Usage
 
-    pokemid in.mid > out.asm
+    pokemid in.asm out.mid    # assembly to MIDI
+    pokemid in.mid > out.asm  # MIDI to assembly
 
-The MIDI file should be in the following format:
+For MIDI to assembly, the MIDI file should be in the following format:
 
   * Up to 4 tracks, each for one Game Boy channel, where the track for channel
     `N` (1 to 4) has a track name event containing `ChN`.
