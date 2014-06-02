@@ -2,16 +2,41 @@ module EmitAssembly where
 
 import Assembly
 import Data.List.Split (splitOn)
-import Data.List (inits, tails, nub, maximumBy)
+import Data.List (nub, maximumBy)
 import Data.Ord (comparing)
 import Control.Monad (guard)
+import Data.Maybe (listToMaybe, mapMaybe)
 
 possibleSubs :: [AsmInstruction] -> [[AsmInstruction]]
 possibleSubs asm = let
-  allSubs = nub $ inits asm >>= tails
-  isLong sub = sum (map asmSize sub) > asmSize (Left $ CallChannel {})
-  noCalls sub = null [ () | Left (CallChannel {}) <- sub ]
-  in filter (\sub -> isLong sub && noCalls sub) allSubs
+  isCall (Left (CallChannel {})) = True
+  isCall _                       = False
+  -- Returns all unique subroutines we should look at which start with sub.
+  growSub :: [[AsmInstruction]] -> [AsmInstruction] -> [[AsmInstruction]]
+  growSub []                     _   = error "possibleSubs: no code???"
+  growSub [_]                    _   = error "possibleSubs: sub doesn't appear?"
+  growSub [_, _]                 _   = [] -- sub only appears once
+  growSub split@(chunk : chunks) sub = let
+    isLong = sum (map asmSize sub) > asmSize (Left $ CallChannel {})
+    -- consistentNext is (Just x) if all of chunks start with x
+    consistentNext = mapM listToMaybe chunks >>= getUniform
+    getUniform []       = Nothing
+    getUniform (x : xs) = guard (all (== x) xs) >> Just x
+    possibleNexts = filter (not . isCall) $ nub $ mapMaybe listToMaybe chunks
+    applyNext x = let
+      go []                              = []
+      go [c]                             = [c]
+      go (c1 : c2@(y : _) : cs) | x == y = c1 : go (c2 : cs)
+      go (c1 : c2         : cs)          = go $ (c1 ++ c2) : cs
+      in go split
+    in case consistentNext of
+      Just next -> growSub (chunk : map tail chunks) (sub ++ [next])
+      -- ^ We don't care about sub because adding next is strictly better.
+      Nothing -> (if isLong then (sub :) else id) $ do
+        next <- possibleNexts
+        growSub (applyNext next) (sub ++ [next])
+  in filter (not . isCall) (nub asm) >>= \inst ->
+    growSub (splitOn [inst] asm) [inst]
 
 replaceSub :: [AsmInstruction] -> String -> [AsmInstruction] -> [AsmInstruction]
 replaceSub sub name asm = let
