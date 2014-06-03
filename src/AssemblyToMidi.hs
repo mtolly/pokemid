@@ -21,12 +21,17 @@ loopFormToMidi ch (begin, loop) = let
         Nothing -> RTB.singleton 0 M.End
         Just l  -> RTB.cons 0 M.Begin $ go True speed octave l
     i : is -> case i of
-      Note k tks -> let
+      Note k tks pbend -> let
+        addBend = case pbend of
+          Just (x, y) -> RTB.cons 0 $ M.PitchBend x y
+          Nothing     -> id
         pitch = fromEnum k + 12 * case ch of
           Ch3 -> octave + 1
           _   -> octave + 2
-        in RTB.cons 0 (M.On pitch) $ RTB.cons (ticksToLen tks) (M.Off pitch) $
-          go inLoop speed octave is
+        in addBend
+          $ RTB.cons 0 (M.On pitch)
+          $ RTB.cons (ticksToLen tks) (M.Off pitch)
+          $ go inLoop speed octave is
       DNote tks d -> let
         pitch = fromEnum d
         in RTB.cons 0 (M.On pitch) $ RTB.cons (ticksToLen tks) (M.Off pitch) $
@@ -39,7 +44,6 @@ loopFormToMidi ch (begin, loop) = let
       Vibrato x y z -> RTB.cons 0 (M.Vibrato x y z) $ go inLoop speed octave is
       Duty x -> RTB.cons 0 (M.Duty x) $ go inLoop speed octave is
       StereoPanning x -> RTB.cons 0 (M.StereoPanning x) $ go inLoop speed octave is
-      PitchBend x y -> RTB.cons 0 (M.PitchBend x y) $ go inLoop speed octave is
       Tempo x y -> RTB.cons 0 (M.Tempo x y) $ go inLoop speed octave is
       where ticksToLen tks = (fromIntegral tks / 4) * (fromIntegral speed / 12)
   in go False undefined undefined begin

@@ -2,7 +2,7 @@ module Emit where
 
 import Assembly
 import Data.List.Split (splitOn)
-import Data.List (nub, maximumBy)
+import Data.List (nub, maximumBy, intercalate)
 import Data.Ord (comparing)
 import Control.Monad (guard)
 import Data.Maybe (listToMaybe, mapMaybe)
@@ -40,17 +40,8 @@ possibleSubs asm = let
     growSub (splitOn [inst] asm) [inst]
 
 replaceSub :: [AsmLine] -> String -> [AsmLine] -> [AsmLine]
-replaceSub sub name asm = let
-  chunks = splitOn sub asm
-  fcall = Left $ CallChannel name
-  go []           = []
-  go [chk]        = chk
-  go (chk : chks) = case reverse chk of
-    Right (PitchBend {}) : _ -> chk ++ sub ++ go chks
-    -- ^ We can't put a function call here because it would split a pitchbend
-    -- from its adjacent note.
-    _                        -> chk ++ [fcall] ++ go chks
-  in go chunks
+replaceSub sub name asm =
+  intercalate [Left $ CallChannel name] $ splitOn sub asm
 
 optimize :: String -> LoopForm Int -> [AsmLine]
 optimize name (begin, loop) = let

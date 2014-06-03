@@ -34,8 +34,10 @@ data Drum
   | MutedSnare4
   deriving (Eq, Ord, Show, Read, Enum, Bounded, Data, Typeable)
 
+type PitchBend = Maybe (Int, Int)
+
 data Instruction t
-  = Note          Key t
+  = Note          Key t PitchBend
   | DNote         t Drum
   | Rest          t
   | NoteType      Int Int Int
@@ -44,7 +46,6 @@ data Instruction t
   | Vibrato       Int Int Int
   | Duty          Int
   | StereoPanning Int
-  | PitchBend     Int Int
   | Tempo         Int Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
@@ -68,7 +69,12 @@ printAsm (Left c) = case c of
   EndChannel      -> makeInstruction "endchannel" []
   ToggleCall      -> makeInstruction "togglecall" []
 printAsm (Right i) = case i of
-  Note  k t       -> makeInstruction "note" [showKey k, show t]
+  Note  k t pbend -> let
+    pb = case pbend of
+      Just (x, y) -> makeInstruction "pitchbend" [show x, show y] ++ "\n"
+      Nothing     -> ""
+    note = makeInstruction "note" [showKey k, show t]
+    in pb ++ note
   DNote t d       -> makeInstruction "dnote" [show t, showDrum d]
   _               -> case words $ show i of
     inst : ints   -> makeInstruction (map toLower inst) ints
@@ -105,7 +111,7 @@ asmSize (Left c) = case c of
   EndChannel    {} -> 1
   ToggleCall    {} -> 1
 asmSize (Right i) = case i of
-  Note          {} -> 1
+  Note   _ _ pbend -> 1 + maybe 0 (const 3) pbend
   DNote         {} -> 2
   Rest          {} -> 1
   NoteType      {} -> 2
@@ -114,5 +120,4 @@ asmSize (Right i) = case i of
   Vibrato       {} -> 3
   Duty          {} -> 2
   StereoPanning {} -> 2
-  PitchBend     {} -> 3
   Tempo         {} -> 3

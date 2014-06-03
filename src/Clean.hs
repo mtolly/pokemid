@@ -14,7 +14,6 @@ isSetting x = case x of
   Note      {} -> False
   DNote     {} -> False
   Rest      {} -> False
-  PitchBend {} -> False
   _            -> True
 
 nullEqual :: Instruction t -> Instruction t -> Bool

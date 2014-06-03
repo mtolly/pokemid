@@ -11,7 +11,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Set as Set
 -- base
-import Control.Applicative ((<|>), (<$>))
+import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Data.Maybe (fromMaybe, mapMaybe, listToMaybe, catMaybes, fromJust)
 
@@ -19,7 +19,7 @@ data FullNote a = FullNote
   { vibrato       :: (Int, Int, Int)
   , duty          :: Int
   , stereoPanning :: Int
-  , pitchBend     :: Maybe (Int, Int)
+  , pitchBend     :: A.PitchBend
   , pitch         :: Either (Int, A.Key) A.Drum
   , noteType      :: (Int, Int)
   , noteLength    :: a
@@ -159,9 +159,8 @@ encode ch = go 12 0 0 . RTB.normalize where
             then A.DSpeed spd
             else uncurry (A.NoteType spd) $ noteType fn
           , either (Just . A.Octave . fst) (const Nothing) $ pitch fn
-          , uncurry A.PitchBend <$> pitchBend fn
           , Just $ case pitch fn of
-            Left (_, k) -> A.Note k tks
+            Left (_, k) -> A.Note k tks $ pitchBend fn
             Right drum  -> A.DNote tks drum
           ] ++ uncurry (go spd) (noteType fn) (decreaseStart newLength rtb')
       where rest = case encodeSum ntSpeed dt of

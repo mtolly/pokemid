@@ -55,7 +55,8 @@ Line :: { AsmLine }
      | Control { Left $1 }
 
 Inst :: { Instruction Int }
-     : note key ',' int { Note $2 $4 }
+     : note key ',' int { Note $2 $4 Nothing }
+     | pitchbend int ',' int Newlines note key ',' int { Note $7 $9 $ Just ($2, $4) }
      | dnote int ',' drum { DNote $2 $4 }
      | rest int { Rest $2 }
      | notetype int ',' int ',' int { NoteType $2 $4 $6 }
@@ -64,7 +65,6 @@ Inst :: { Instruction Int }
      | vibrato int ',' int ',' int { Vibrato $2 $4 $6 }
      | duty int { Duty $2 }
      | stereopanning int { StereoPanning $2 }
-     | pitchbend int ',' int { PitchBend $2 $4 }
      | tempo int ',' int { Tempo $2 $4 }
 
 Control :: { Control String }
