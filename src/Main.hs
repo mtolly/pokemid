@@ -7,14 +7,13 @@ import qualified Graph
 import qualified Midi
 import qualified AssemblyToMidi
 import qualified MidiToAssembly
-import qualified CleanAssembly
-import qualified EmitAssembly
+import qualified Clean
+import qualified Emit
 import Control.Applicative ((<$>))
 import qualified Sound.MIDI.File.Load as Load
 import qualified Sound.MIDI.File.Save as Save
 import System.Environment (getArgs, getProgName)
 import qualified Data.Map as Map
-import Control.Arrow (second)
 import Control.Monad (forM_)
 import System.IO (stderr, hPutStrLn)
 import System.Exit (exitFailure)
@@ -28,12 +27,9 @@ main = do
       forM_ trks $ \(name, trk) -> let
         chan = Midi.getNamedChannel name
         (begin, loop) = MidiToAssembly.splitLoop $ MidiToAssembly.simplify chan trk
-        beginLoop = case loop of
-          Nothing -> (asmEvents begin, Nothing)
-          Just l  -> second Just $
-            CleanAssembly.cleanBeginLoop (asmEvents begin, asmEvents l)
-        asmEvents = CleanAssembly.cleanAssembly . MidiToAssembly.encode chan
-        code = EmitAssembly.optimize name beginLoop
+        beginLoop = Clean.cleanLoop (asmEvents begin, fmap asmEvents loop)
+        asmEvents = Clean.cleanAssembly . MidiToAssembly.encode chan
+        code = Emit.optimize name beginLoop
         in forM_ code $ putStrLn . Assembly.printAsm
     [fasm, fmid] -> do
       graph <- Graph.makeGraph . Parse.parse . Scan.scan <$> readFile fasm

@@ -19,8 +19,8 @@ executable pokemid
                       Midi
                       AssemblyToMidi
                       MidiToAssembly
-                      CleanAssembly
-                      EmitAssembly
+                      Clean
+                      Emit
   build-depends:      base           >= 4.6     && < 4.8
                       , midi         >= 0.2.1.2 && < 0.3
                       , event-list   >= 0.1.0.2 && < 0.2

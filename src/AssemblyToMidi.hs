@@ -12,8 +12,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Map as Map
 
-loopFormToMidi :: Channel ->
-  ([Instruction Int], Maybe [Instruction Int]) -> RTB.T NN.Rational M.Event
+loopFormToMidi :: Channel -> LoopForm Int -> RTB.T NN.Rational M.Event
 loopFormToMidi ch (begin, loop) = let
   go inLoop speed octave insts = case insts of
     [] -> if inLoop

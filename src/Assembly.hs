@@ -34,8 +34,6 @@ data Drum
   | MutedSnare4
   deriving (Eq, Ord, Show, Read, Enum, Bounded, Data, Typeable)
 
-type Ticks = Int
-
 data Instruction t
   = Note          Key t
   | DNote         t Drum
@@ -50,6 +48,8 @@ data Instruction t
   | Tempo         Int Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
+type LoopForm t = ([Instruction t], Maybe [Instruction t])
+
 data Control label
   = Label       label
   | LoopChannel Int label
@@ -58,9 +58,9 @@ data Control label
   | ToggleCall
   deriving (Eq, Ord, Show, Read, Functor)
 
-type AsmInstruction = Either (Control String) (Instruction Int)
+type AsmLine = Either (Control String) (Instruction Int)
 
-printAsm :: AsmInstruction -> String
+printAsm :: AsmLine -> String
 printAsm (Left c) = case c of
   Label       l   -> l ++ "::"
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
@@ -97,7 +97,7 @@ readDrum ('m' : s) = read $ 'M' : map (\c -> if c == 's' then 'S' else c) s
 readDrum (c   : s) = read $ toUpper c : s
 
 -- | The size in bytes of an assembled instruction.
-asmSize :: AsmInstruction -> Int
+asmSize :: AsmLine -> Int
 asmSize (Left c) = case c of
   Label         {} -> 0
   LoopChannel   {} -> 4

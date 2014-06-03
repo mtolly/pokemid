@@ -36,12 +36,12 @@ import qualified Scan as S
 %%
 
 -- A file that can optionally start with a newline
-File :: { [AsmInstruction] }
+File :: { [AsmLine] }
      : Line File1 { $1 : $2 }
      | File1 { $1 }
 
 -- A file that must start with a newline
-File1 :: { [AsmInstruction] }
+File1 :: { [AsmLine] }
       : Newlines Line File1 { $2 : $3 }
       | Newlines { [] }
       | { [] }
@@ -50,7 +50,7 @@ File1 :: { [AsmInstruction] }
 Newlines : newline { () }
          | newline Newlines { () }
 
-Line :: { AsmInstruction }
+Line :: { AsmLine }
      : Inst { Right $1 }
      | Control { Left $1 }
 

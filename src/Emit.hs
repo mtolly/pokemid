@@ -1,4 +1,4 @@
-module EmitAssembly where
+module Emit where
 
 import Assembly
 import Data.List.Split (splitOn)
@@ -7,12 +7,12 @@ import Data.Ord (comparing)
 import Control.Monad (guard)
 import Data.Maybe (listToMaybe, mapMaybe)
 
-possibleSubs :: [AsmInstruction] -> [[AsmInstruction]]
+possibleSubs :: [AsmLine] -> [[AsmLine]]
 possibleSubs asm = let
   isCall (Left (CallChannel {})) = True
   isCall _                       = False
   -- Returns all unique subroutines we should look at which start with sub.
-  growSub :: [[AsmInstruction]] -> [AsmInstruction] -> [[AsmInstruction]]
+  growSub :: [[AsmLine]] -> [AsmLine] -> [[AsmLine]]
   growSub []                     _   = error "possibleSubs: no code???"
   growSub [_]                    _   = error "possibleSubs: sub doesn't appear?"
   growSub [_, _]                 _   = [] -- sub only appears once
@@ -39,7 +39,7 @@ possibleSubs asm = let
   in filter (not . isCall) (nub asm) >>= \inst ->
     growSub (splitOn [inst] asm) [inst]
 
-replaceSub :: [AsmInstruction] -> String -> [AsmInstruction] -> [AsmInstruction]
+replaceSub :: [AsmLine] -> String -> [AsmLine] -> [AsmLine]
 replaceSub sub name asm = let
   chunks = splitOn sub asm
   fcall = Left $ CallChannel name
@@ -52,11 +52,10 @@ replaceSub sub name asm = let
     _                        -> chk ++ [fcall] ++ go chks
   in go chunks
 
-optimize ::
-  String -> ([Instruction Int], Maybe [Instruction Int]) -> [AsmInstruction]
+optimize :: String -> LoopForm Int -> [AsmLine]
 optimize name (begin, loop) = let
   size = sum . map asmSize
-  go :: Bool -> Int -> [AsmInstruction] -> [AsmInstruction] -> [AsmInstruction]
+  go :: Bool -> Int -> [AsmLine] -> [AsmLine] -> [AsmLine]
   go isLoop subNumber subsCode mainCode = let
     subName = if isLoop
       then name ++ "_loop_sub_" ++ show subNumber

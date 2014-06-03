@@ -1,33 +1,37 @@
-module CleanAssembly where
+module Clean where
 
-import qualified Assembly as A
+import Assembly
 import Data.Data (toConstr)
+import Control.Applicative ((<$))
 
 -- | True if the two commands are the same type of command.
-sameConstructor :: A.Instruction Int -> A.Instruction Int -> Bool
-sameConstructor x y = toConstr x == toConstr y
+sameConstructor :: Instruction t -> Instruction t -> Bool
+sameConstructor x y = toConstr (() <$ x) == toConstr (() <$ y)
 
 -- | True if the command is one that changes a setting for all events after it.
-isSetting :: A.Instruction Int -> Bool
+isSetting :: Instruction t -> Bool
 isSetting x = case x of
-  A.Note      {} -> False
-  A.DNote     {} -> False
-  A.Rest      {} -> False
-  A.PitchBend {} -> False
-  _              -> True
+  Note      {} -> False
+  DNote     {} -> False
+  Rest      {} -> False
+  PitchBend {} -> False
+  _            -> True
+
+nullEqual :: Instruction t -> Instruction t -> Bool
+nullEqual x y = (() <$ x) == (() <$ y)
 
 -- | Removes status change commands which are identical to a given one,
 -- up until finding one which changes the status to something different.
-cleanEvent :: A.Instruction Int -> [A.Instruction Int] -> [A.Instruction Int]
+cleanEvent :: Instruction t -> [Instruction t] -> [Instruction t]
 cleanEvent _ []       = []
 cleanEvent x ys@(y : yt) = if sameConstructor x y
-  then if x == y
+  then if nullEqual x y
     then cleanEvent x yt
     else ys
   else y : cleanEvent x yt
 
 -- | Removes redundant status change commands.
-cleanAssembly :: [A.Instruction Int] -> [A.Instruction Int]
+cleanAssembly :: [Instruction t] -> [Instruction t]
 cleanAssembly [] = []
 cleanAssembly (x : xs) = (x :) $ cleanAssembly $ if isSetting x
   then cleanEvent x xs
@@ -36,22 +40,23 @@ cleanAssembly (x : xs) = (x :) $ cleanAssembly $ if isSetting x
 -- | Finds settings that have the same value at the end of the intro,
 -- the start of the loop, and the end of the loop. Such settings can be removed
 -- from the start of the loop.
-cleanBeginLoop :: ([A.Instruction Int], [A.Instruction Int]) -> ([A.Instruction Int], [A.Instruction Int])
-cleanBeginLoop = let
+cleanLoop :: LoopForm t -> LoopForm t
+cleanLoop = let
   dummySettings =
-    [ A.NoteType {}
-    , A.DSpeed {}
-    , A.Octave {}
-    , A.Vibrato {}
-    , A.Duty {}
-    , A.StereoPanning {}
-    , A.Tempo {}
+    [ NoteType {}
+    , DSpeed {}
+    , Octave {}
+    , Vibrato {}
+    , Duty {}
+    , StereoPanning {}
+    , Tempo {}
     ]
-  clean setting (b, l) = let
+  clean _       (b, Nothing) = (b, Nothing)
+  clean setting (b, Just l ) = let
     fnb = filter (sameConstructor setting) b
     fnl = filter (sameConstructor setting) l
     in case (reverse fnb, fnl, reverse fnl) of
-      (x : _, y : _, z : _) | x == y && x == z
-        -> (b, cleanEvent x l)
-      _ -> (b, l)
+      (x : _, y : _, z : _) | nullEqual x y && nullEqual x z
+        -> (b, Just $ cleanEvent x l)
+      _ -> (b, Just l)
   in foldr (.) id $ map clean dummySettings

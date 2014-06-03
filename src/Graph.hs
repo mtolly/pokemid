@@ -40,7 +40,7 @@ nextLabel b = case b of
   End -> Nothing
   Goto l -> Just l
 
-loopForm :: (Show s, Ord s) => s -> Graph s t -> ([Instruction t], Maybe [Instruction t])
+loopForm :: (Show s, Ord s) => s -> Graph s t -> LoopForm t
 loopForm start g = let
   getBlock lbl = fromMaybe
     (error $ "loopForm: no such label in graph " ++ show start)
