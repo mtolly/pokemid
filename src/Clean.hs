@@ -1,3 +1,7 @@
+{- |
+Cleans up the assembly code by removing redundant status change commands,
+both within a single section and across the loop boundary.
+-}
 module Clean where
 
 import Assembly
@@ -16,6 +20,8 @@ isSetting x = case x of
   Rest      {} -> False
   _            -> True
 
+-- | True if two instructions are equal, ignoring any tick-length parameters.
+-- Intended to only be used for setting commands ('Vibrato', etc.).
 nullEqual :: Instruction t -> Instruction t -> Bool
 nullEqual x y = (() <$ x) == (() <$ y)
 

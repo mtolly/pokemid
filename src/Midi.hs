@@ -1,3 +1,7 @@
+{- |
+Contains the simplified view of MIDI events that we care about, along with the
+translation functions to/from \"raw\" MIDI events.
+-}
 module Midi where
 
 import Assembly (Channel(..))
@@ -17,6 +21,14 @@ import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
 import Data.List (intercalate, isInfixOf)
 
+{- |
+A simplified view of the MIDI events we care about, ignoring things like MIDI
+velocity and channels, and interpreting the special command text events.
+
+The constructors are ordered intentionally: first 'Off', then 'Begin' and 'End',
+then any pre-note settings, and finally 'On'. This lets us use 'RTB.normalize'
+to process events in the correct order.
+-}
 data Event
   = Off Int
   | Begin
@@ -53,6 +65,8 @@ getEvent e = case e of
       quotRem (round $ (toRational t / 1000000) * 320) 256
   _ -> Nothing
 
+-- | We take the channel as a parameter because we want to emit 'Ch4' notes
+-- (the noise channel) on the General MIDI percussion channel 9.
 fromEvent :: Channel -> Event -> E.T
 fromEvent ch e = case e of
   Off p -> voice0 $ V.NoteOff (V.toPitch p) (V.toVelocity 0)
@@ -89,11 +103,17 @@ getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
     _ -> []
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 
+-- | Looks for a channel name in the track name.
 getNamedChannel :: String -> Channel
 getNamedChannel name = case [ c | c <- [Ch1 .. Ch4], show c `isInfixOf` name] of
   []     -> Ch1
   ch : _ -> ch
 
+{- |
+Converts a sequence of named tracks to a complete MIDI file.
+The tempo events in the first track are extracted to form the MIDI tempo track.
+The track names should have channel names (like \"Ch1\") somewhere inside them.
+-}
 fromTracks :: [(String, RTB.T NN.Rational Event)] -> F.T
 fromTracks [] = F.Cons F.Parallel (F.Ticks 480) []
 fromTracks ((name, trk) : trks) = let

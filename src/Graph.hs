@@ -1,3 +1,7 @@
+{- |
+A control-flow graph representation of the music assembly code, which functions
+as an intermediate form on the way to a 'LoopForm'.
+-}
 module Graph where
 
 import Assembly
@@ -5,6 +9,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 
+-- | A basic block which ends in an optional branch.
 data Block s t
   = Inst (Instruction t) (Block s t)
   | Call s (Block s t)
@@ -15,6 +20,7 @@ data Block s t
 
 type Graph s t = Map.Map s (Block s t)
 
+-- | Converts the raw assembly sequence into a mapping from labels to blocks.
 makeGraph :: Ord s => [Either (Control s) (Instruction t)] -> Graph s t
 makeGraph asm = let
   labels = [ s | Left (Label s) <- asm ]
@@ -40,6 +46,11 @@ nextLabel b = case b of
   End -> Nothing
   Goto l -> Just l
 
+{- |
+\"Runs\" the music graph to convert one channel into a simple 'LoopForm'.
+Small subloops are expanded out, so we get one or two simple blocks of
+instructions with no branches.
+-}
 loopForm :: (Show s, Ord s) => s -> Graph s t -> LoopForm t
 loopForm start g = let
   getBlock lbl = fromMaybe

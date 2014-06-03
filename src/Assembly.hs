@@ -1,12 +1,15 @@
 {-# LANGUAGE DeriveFunctor, DeriveDataTypeable #-}
-{-# OPTIONS_GHC -Wall #-}
 module Assembly where
 
 import Data.Char (toLower, toUpper)
 import Data.Data (Data, Typeable)
 import Data.List (intercalate)
 
-data Channel = Ch1 | Ch2 | Ch3 | Ch4
+data Channel
+  = Ch1 -- ^ Pulse 1
+  | Ch2 -- ^ Pulse 2
+  | Ch3 -- ^ Wave
+  | Ch4 -- ^ Noise
   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
 data Key = C_ | Cs | D_ | Ds | E_ | F_ | Fs | G_ | Gs | A_ | As | B_
@@ -49,6 +52,8 @@ data Instruction t
   | Tempo         Int Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
+-- | The basic form of music we support: a sequence of instructions that plays
+-- once, followed by an optional sequence that loops infinitely.
 type LoopForm t = ([Instruction t], Maybe [Instruction t])
 
 data Control label

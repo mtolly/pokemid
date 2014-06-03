@@ -1,3 +1,7 @@
+{- |
+Takes assembly code as a 'LoopForm' and compiles it into labels and branches,
+using subroutines to shrink repeated sections of code.
+-}
 module Emit where
 
 import Assembly
