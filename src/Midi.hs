@@ -65,10 +65,8 @@ getEvent e = case e of
       quotRem (round $ (toRational t / 1000000) * 320) 256
   _ -> Nothing
 
--- | We take the channel as a parameter because we want to emit 'Ch4' notes
--- (the noise channel) on the General MIDI percussion channel 9.
-fromEvent :: Channel -> Event -> E.T
-fromEvent ch e = case e of
+fromEvent :: C.Channel -> Event -> E.T
+fromEvent midiChannel e = case e of
   Off p -> voice0 $ V.NoteOff (V.toPitch p) (V.toVelocity 0)
   Begin -> E.MetaEvent $ M.TextEvent "begin"
   End -> E.MetaEvent $ M.TextEvent "end"
@@ -79,7 +77,7 @@ fromEvent ch e = case e of
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x y -> E.MetaEvent $ M.SetTempo $ round $ (toRational (x * 256 + y) / 320) * 1000000
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
-  where voice0 = E.MIDIEvent . C.Cons (C.toChannel $ if ch == Ch4 then 9 else 0) . C.Voice
+  where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
           then ""
           else " " ++ intercalate ", " (map show args)
@@ -120,12 +118,25 @@ fromTracks ((name, trk) : trks) = let
   (tempos, rest) = RTB.partition isTempo trk
   isTempo (Tempo _ _) = True
   isTempo _           = False
-  tempoTrack = fmap (fromEvent Ch1) tempos
-  otherTracks =
-    [ RTB.cons 0 (E.MetaEvent $ M.TrackName n)
-      $ fmap (fromEvent $ getNamedChannel n) t
-    | (n, t) <- (name, rest) : trks
-    ]
+  tempoTrack = fmap (fromEvent $ C.toChannel 0) tempos
+  otherTracks = do
+    (n, t) <- (name, rest) : trks
+    let channel = getNamedChannel n
+        midiChannel = C.toChannel $ case channel of
+          Ch1 -> 0
+          Ch2 -> 1
+          Ch3 -> 2
+          Ch4 -> 9 -- General MIDI percussion
+        midiProgram = V.toProgram $ case channel of
+          Ch1 -> 80 -- Lead 1 (square)
+          Ch2 -> 80 -- Lead 1 (square)
+          Ch3 -> 81 -- Lead 2 (sawtooth)
+          Ch4 -> 24 -- for drums: Electronic Kit
+        pcEvent = E.MIDIEvent . C.Cons midiChannel . C.Voice . V.ProgramChange
+    return
+      $ RTB.cons 0 (E.MetaEvent $ M.TrackName n)
+      $ RTB.cons 0 (pcEvent midiProgram)
+      $ fmap (fromEvent midiChannel) t
   in F.Cons F.Parallel (F.Ticks 480)
     $ map (RTB.discretize . RTB.mapTime (* 480))
     $ tempoTrack : otherTracks
