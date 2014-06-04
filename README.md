@@ -17,15 +17,12 @@ Features:
   * Changes tempo with MIDI tempo events.
 
   * Supports the following note modifiers: `notetype`, `pitchbend`, `vibrato`,
-    `duty`, and `stereopanning`.
+    `duty`, `stereopanning`, and `unknownmusic0xee`.
 
   * Finds repeated sections of assembly events and breaks them out into
     subroutines, called with `callchannel`, to save ROM space.
 
 Future work:
-
-  * Understand/support `unknownmusic0xee`, an event used only in the Rocket
-    HQ theme intro.
 
   * Extend to the [pokecrystal][] project?
 
