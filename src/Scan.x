@@ -31,6 +31,7 @@ octave { const Octave }
 vibrato { const Vibrato }
 duty { const Duty }
 stereopanning { const StereoPanning }
+unknownmusic0xee { const UnknownMusic0xEE }
 pitchbend { const PitchBend }
 tempo { const Tempo }
 loopchannel { const LoopChannel }
@@ -60,6 +61,7 @@ data Token
   | Vibrato
   | Duty
   | StereoPanning
+  | UnknownMusic0xEE
   | PitchBend
   | Tempo
   | LoopChannel

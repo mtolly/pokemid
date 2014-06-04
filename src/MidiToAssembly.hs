@@ -11,14 +11,15 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Set as Set
 -- base
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), (<$>))
 import Control.Monad (guard)
 import Data.Maybe (fromMaybe, mapMaybe, listToMaybe, catMaybes, fromJust)
 
 data FullNote a = FullNote
   { vibrato       :: (Int, Int, Int)
   , duty          :: Int
-  , stereoPanning :: Int
+  , stereoPanning :: Maybe Int
+  , unknownMusic0xEE :: Maybe Int
   , pitchBend     :: A.PitchBend
   , pitch         :: Either (Int, A.Key) A.Drum
   , noteType      :: (Int, Int)
@@ -29,7 +30,8 @@ defaultNote :: FullNote a
 defaultNote = FullNote
   { vibrato = (0, 0, 0)
   , duty = 0
-  , stereoPanning = 119
+  , stereoPanning = Nothing
+  , unknownMusic0xEE = Nothing
   , pitchBend = Nothing
   , pitch = undefined
   , noteType = (10, 0)
@@ -73,7 +75,8 @@ simplify ch = go defaultNote . RTB.normalize where
       M.NoteType a b -> RTB.delay dt $ go (fn { noteType = (a, b) }) rtb'
       M.Vibrato a b c -> RTB.delay dt $ go (fn { vibrato = (a, b, c) }) rtb'
       M.Duty a -> RTB.delay dt $ go (fn { duty = a }) rtb'
-      M.StereoPanning a -> RTB.delay dt $ go (fn { stereoPanning = a }) rtb'
+      M.StereoPanning a -> RTB.delay dt $ go (fn { stereoPanning = Just a }) rtb'
+      M.UnknownMusic0xEE a -> RTB.delay dt $ go (fn { unknownMusic0xEE = Just a }) rtb'
       M.PitchBend a b -> RTB.delay dt $ go (fn { pitchBend = Just (a, b) }) rtb'
       M.Tempo a b -> RTB.cons dt (Tempo a b) $ go fn rtb'
       M.On p -> case findOff p rtb' of
@@ -152,9 +155,8 @@ encode ch = go 12 0 0 . RTB.normalize where
           , do
             guard $ ch `elem` [A.Ch1, A.Ch2]
             Just $ A.Duty $ duty fn
-          , do
-            guard $ ch `elem` [A.Ch1, A.Ch2]
-            Just $ A.StereoPanning $ stereoPanning fn
+          , A.StereoPanning <$> stereoPanning fn
+          , A.UnknownMusic0xEE <$> unknownMusic0xEE fn
           , Just $ if ch == A.Ch4
             then A.DSpeed spd
             else uncurry (A.NoteType spd) $ noteType fn

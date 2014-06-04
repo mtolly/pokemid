@@ -56,6 +56,7 @@ For MIDI to assembly, the MIDI file should be in the following format:
       * `vibrato <delay>, <rate>, <depth>`
       * `duty <int>`
       * `stereopanning <int>`
+      * `unknownmusic0xee <int>`
       * `pitchbend <int>, <int>`
 
     For documentation on these see the [pokered] project.

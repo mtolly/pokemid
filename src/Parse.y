@@ -26,6 +26,7 @@ import qualified Scan as S
   vibrato { S.Vibrato }
   duty { S.Duty }
   stereopanning { S.StereoPanning }
+  unknownmusic0xee { S.UnknownMusic0xEE }
   pitchbend { S.PitchBend }
   tempo { S.Tempo }
   loopchannel { S.LoopChannel }
@@ -65,6 +66,7 @@ Inst :: { Instruction Int }
      | vibrato int ',' int ',' int { Vibrato $2 $4 $6 }
      | duty int { Duty $2 }
      | stereopanning int { StereoPanning $2 }
+     | unknownmusic0xee int { UnknownMusic0xEE $2 }
      | tempo int ',' int { Tempo $2 $4 }
 
 Control :: { Control String }
