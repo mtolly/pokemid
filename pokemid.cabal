@@ -1,5 +1,5 @@
 name:               pokemid
-version:            0.3
+version:            0.4
 synopsis:           Import\/export Pokémon Red\/Blue music as MIDI
 homepage:           https://github.com/mtolly/pokemid
 license:            PublicDomain
@@ -22,6 +22,7 @@ executable pokemid
                       Clean
                       Emit
                       Error
+                      Paths_pokemid
   build-depends:      base           >= 4.6     && < 4.8
                       , midi         >= 0.2.1.2 && < 0.3
                       , event-list   >= 0.1.0.2 && < 0.2

@@ -1,5 +1,7 @@
 module Main where
 
+import Paths_pokemid (version)
+import Data.Version (showVersion)
 import qualified Scan
 import qualified Parse
 import qualified Assembly
@@ -64,6 +66,7 @@ main = do
       Save.toFile fmid mid
     _ -> do
       prog <- getProgName
+      hPutStrLn stderr $ prog ++ " v" ++ showVersion version
       hPutStrLn stderr $ "Usage: "++prog++" in.mid > out.asm"
       hPutStrLn stderr $ "       "++prog++" in.asm out.mid"
       exitFailure
