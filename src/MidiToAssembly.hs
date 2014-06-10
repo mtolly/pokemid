@@ -14,6 +14,7 @@ import qualified Data.Set as Set
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (guard)
 import Data.Maybe (fromMaybe, mapMaybe, listToMaybe, catMaybes, fromJust)
+import Data.Ratio (denominator)
 
 data FullNote a = FullNote
   { vibrato       :: (Int, Int, Int)
@@ -122,10 +123,12 @@ encodeSum
 encodeSum _         0   = Just []
 encodeSum lastSpeed rat = case encodeNote lastSpeed rat of
   Just p  -> Just [p]
-  Nothing -> case filter ((< rat) . fst) encodeLengths of
-    [] -> Nothing
-    ps -> listToMaybe $ mapMaybe f ps
-    where f (r, enc) = fmap (enc :) $ encodeSum (fst enc) $ rat - r
+  Nothing -> case 48 `rem` denominator (NN.toNumber rat) of
+    0 -> case filter ((< rat) . fst) encodeLengths of
+      [] -> Nothing
+      ps -> listToMaybe $ mapMaybe f ps
+      where f (r, enc) = fmap (enc :) $ encodeSum (fst enc) $ rat - r
+    _ -> Nothing -- rest length is not multiple of 1/48 beat; unencodeable
 
 encode ::
   A.Channel -> RTB.T NN.Rational (Simple NN.Rational) -> [A.Instruction Int]
