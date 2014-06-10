@@ -48,7 +48,7 @@ data Instruction t
   | Octave        Int
   | Vibrato       Int Int Int
   | Duty          Int
-  | StereoPanning Int
+  | Volume        Int Int
   | UnknownMusic0xEE Int
   | Tempo         Int Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
@@ -125,6 +125,6 @@ asmSize (Right i) = case i of
   Octave        {} -> 1
   Vibrato       {} -> 3
   Duty          {} -> 2
-  StereoPanning {} -> 2
+  Volume        {} -> 2
   UnknownMusic0xEE {} -> 2
   Tempo         {} -> 3

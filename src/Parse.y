@@ -25,7 +25,7 @@ import qualified Scan as S
   octave { S.Octave }
   vibrato { S.Vibrato }
   duty { S.Duty }
-  stereopanning { S.StereoPanning }
+  volume { S.Volume }
   unknownmusic0xee { S.UnknownMusic0xEE }
   pitchbend { S.PitchBend }
   tempo { S.Tempo }
@@ -65,7 +65,7 @@ Inst :: { Instruction Int }
      | octave int { Octave $2 }
      | vibrato int ',' int ',' int { Vibrato $2 $4 $6 }
      | duty int { Duty $2 }
-     | stereopanning int { StereoPanning $2 }
+     | volume int ',' int { Volume $2 $4 }
      | unknownmusic0xee int { UnknownMusic0xEE $2 }
      | tempo int ',' int { Tempo $2 $4 }
 

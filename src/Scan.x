@@ -30,7 +30,7 @@ dspeed { const DSpeed }
 octave { const Octave }
 vibrato { const Vibrato }
 duty { const Duty }
-stereopanning { const StereoPanning }
+volume { const Volume }
 unknownmusic0xee { const UnknownMusic0xEE }
 pitchbend { const PitchBend }
 tempo { const Tempo }
@@ -60,7 +60,7 @@ data Token
   | Octave
   | Vibrato
   | Duty
-  | StereoPanning
+  | Volume
   | UnknownMusic0xEE
   | PitchBend
   | Tempo
