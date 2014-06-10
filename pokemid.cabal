@@ -21,6 +21,7 @@ executable pokemid
                       MidiToAssembly
                       Clean
                       Emit
+                      Error
   build-depends:      base           >= 4.6     && < 4.8
                       , midi         >= 0.2.1.2 && < 0.3
                       , event-list   >= 0.1.0.2 && < 0.2
