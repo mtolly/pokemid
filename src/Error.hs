@@ -25,7 +25,7 @@ findEnd rtb = case RTB.span (/= End) rtb of
 isTimeSig :: E.T -> Maybe NN.Rational
 isTimeSig (E.MetaEvent (M.TimeSig n d _ _)) = let
   denom = 2 ^^ (negate (fromIntegral d) :: Int)
-  in Just $ fromIntegral n * denom
+  in Just $ 4 * fromIntegral n * denom
 isTimeSig _ = Nothing
 
 posnToMeasureBeats :: RTB.T NN.Rational E.T -> NN.Rational -> (Int, NN.Rational)
