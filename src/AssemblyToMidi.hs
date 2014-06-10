@@ -44,7 +44,7 @@ loopFormToMidi ch (begin, loop) = let
       Vibrato x y z -> RTB.cons 0 (M.Vibrato x y z) $ go inLoop speed octave is
       Duty x -> RTB.cons 0 (M.Duty x) $ go inLoop speed octave is
       Volume l r -> RTB.cons 0 (M.Volume l r) $ go inLoop speed octave is
-      UnknownMusic0xEE x -> RTB.cons 0 (M.UnknownMusic0xEE x) $ go inLoop speed octave is
+      StereoPanning x -> RTB.cons 0 (M.StereoPanning x) $ go inLoop speed octave is
       Tempo x y -> RTB.cons 0 (M.Tempo x y) $ go inLoop speed octave is
       where ticksToLen tks = (fromIntegral tks / 4) * (fromIntegral speed / 12)
   in go False undefined undefined begin

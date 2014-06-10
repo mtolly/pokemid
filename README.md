@@ -17,7 +17,7 @@ Features:
   * Changes tempo with MIDI tempo events.
 
   * Supports the following note modifiers: `notetype`, `pitchbend`, `vibrato`,
-    `duty`, `volume`, and `unknownmusic0xee`.
+    `duty`, `volume`, and `stereopanning`.
 
   * Finds repeated sections of assembly events and breaks them out into
     subroutines, called with `callchannel`, to save ROM space.
@@ -53,7 +53,7 @@ For MIDI to assembly, the MIDI file should be in the following format:
       * `vibrato <delay>, <rate>, <depth>`
       * `duty <int>`
       * `volume <left>, <right>`
-      * `unknownmusic0xee <int>`
+      * `stereopanning <int>`
       * `pitchbend <int>, <int>`
 
     For documentation on these see the [pokered] project.

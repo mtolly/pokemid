@@ -26,7 +26,7 @@ data FullNote a = FullNote
   { vibrato       :: (Int, Int, Int)
   , duty          :: Int
   , volume        :: Maybe (Int, Int)
-  , unknownMusic0xEE :: Maybe Int
+  , stereoPanning :: Maybe Int
   , pitchBend     :: A.PitchBend
   , pitch         :: Either (Int, A.Key) A.Drum
   , noteType      :: (Int, Int)
@@ -38,7 +38,7 @@ defaultNote = FullNote
   { vibrato = (0, 0, 0)
   , duty = 0
   , volume = Nothing
-  , unknownMusic0xEE = Nothing
+  , stereoPanning = Nothing
   , pitchBend = Nothing
   , pitch = undefined
   , noteType = (10, 0)
@@ -83,7 +83,7 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
       M.Vibrato a b c -> RTB.delay dt <$> go' (fn { vibrato = (a, b, c) })
       M.Duty a -> RTB.delay dt <$> go' (fn { duty = a })
       M.Volume a b -> RTB.delay dt <$> go' (fn { volume = Just (a, b) })
-      M.UnknownMusic0xEE a -> RTB.delay dt <$> go' (fn { unknownMusic0xEE = Just a })
+      M.StereoPanning a -> RTB.delay dt <$> go' (fn { stereoPanning = Just a })
       M.PitchBend a b -> RTB.delay dt <$> go' (fn { pitchBend = Just (a, b) })
       M.Tempo a b -> RTB.cons dt (Tempo a b) <$> go' fn
       M.On p -> case findOff p rtb' of
@@ -178,7 +178,7 @@ encode ch = go 0 12 0 0 . RTB.normalize where
               guard $ ch `elem` [A.Ch1, A.Ch2]
               Just $ A.Duty $ duty fn
             , uncurry A.Volume <$> volume fn
-            , A.UnknownMusic0xEE <$> unknownMusic0xEE fn
+            , A.StereoPanning <$> stereoPanning fn
             , Just $ if ch == A.Ch4
               then A.DSpeed spd
               else uncurry (A.NoteType spd) $ noteType fn

@@ -37,7 +37,7 @@ data Event
   | Vibrato Int Int Int
   | Duty Int
   | Volume Int Int
-  | UnknownMusic0xEE Int
+  | StereoPanning Int
   | PitchBend Int Int
   | Tempo Int Int
   | On Int
@@ -59,7 +59,7 @@ getEvent e = case e of
       ("notetype"     , Just [_, y, z]) -> Just $ NoteType y z
       ("notetype"     , Just [y, z]   ) -> Just $ NoteType y z
       ("volume"       , Just [x, y]   ) -> Just $ Volume x y
-      ("unknownmusic0xee", Just [x]   ) -> Just $ UnknownMusic0xEE x
+      ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
       _                                 -> Nothing
   E.MetaEvent (M.SetTempo t) ->
@@ -76,7 +76,7 @@ fromEvent midiChannel e = case e of
   Vibrato x y z -> textCmd "vibrato" [x, y, z]
   Duty x -> textCmd "duty" [x]
   Volume x y -> textCmd "volume" [x, y]
-  UnknownMusic0xEE x -> textCmd "unknownmusic0xee" [x]
+  StereoPanning x -> textCmd "stereopanning" [x]
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x y -> E.MetaEvent $ M.SetTempo $ round $ (toRational (x * 256 + y) / 320) * 1000000
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
