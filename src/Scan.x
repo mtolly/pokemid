@@ -22,8 +22,6 @@ triangle[1-3]   { Drum . Assembly.readDrum }
 cymbal[1-3]     { Drum . Assembly.readDrum }
 mutedsnare[1-4] { Drum . Assembly.readDrum }
 
-note { const Note }
-dnote { const DNote }
 rest { const Rest }
 notetype { const NoteType }
 dspeed { const DSpeed }
