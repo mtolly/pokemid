@@ -35,7 +35,7 @@ tempo { const Tempo }
 loopchannel { const LoopChannel }
 callchannel { const CallChannel }
 endchannel { const EndChannel }
-togglecall { const ToggleCall }
+toggleperfectpitch { const TogglePerfectPitch }
 
 [A-Za-z0-9_]+ { Label }
 \:\: { const GlobalLabel }
@@ -65,7 +65,7 @@ data Token
   | LoopChannel
   | CallChannel
   | EndChannel
-  | ToggleCall
+  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read)
 
 scan :: String -> [Token]

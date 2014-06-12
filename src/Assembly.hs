@@ -62,7 +62,7 @@ data Control label
   | LoopChannel Int label
   | CallChannel label
   | EndChannel
-  | ToggleCall
+  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read, Functor)
 
 type AsmLine = Either (Control String) (Instruction Int)
@@ -73,7 +73,7 @@ printAsm (Left c) = case c of
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
   CallChannel l   -> makeInstruction "callchannel" [l]
   EndChannel      -> makeInstruction "endchannel" []
-  ToggleCall      -> makeInstruction "togglecall" []
+  TogglePerfectPitch -> makeInstruction "toggleperfectpitch" []
 printAsm (Right i) = case i of
   Note  k t pbend -> let
     pb = case pbend of
@@ -115,7 +115,7 @@ asmSize (Left c) = case c of
   LoopChannel   {} -> 4
   CallChannel   {} -> 3
   EndChannel    {} -> 1
-  ToggleCall    {} -> 1
+  TogglePerfectPitch {} -> 1
 asmSize (Right i) = case i of
   Note   _ _ pbend -> 1 + maybe 0 (const 3) pbend
   DNote         {} -> 2

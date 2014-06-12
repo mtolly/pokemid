@@ -30,7 +30,7 @@ import qualified Scan as S
   loopchannel { S.LoopChannel }
   callchannel { S.CallChannel }
   endchannel { S.EndChannel }
-  togglecall { S.ToggleCall }
+  toggleperfectpitch { S.TogglePerfectPitch }
 
 %%
 
@@ -72,7 +72,7 @@ Control :: { Control String }
         | loopchannel int ',' label { LoopChannel $2 $4 }
         | callchannel label { CallChannel $2 }
         | endchannel { EndChannel }
-        | togglecall { ToggleCall }
+        | toggleperfectpitch { TogglePerfectPitch }
 
 {
 
