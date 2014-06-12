@@ -50,7 +50,7 @@ defaultNote = FullNote
 data Simple a
   = Begin
   | End
-  | Tempo Int Int
+  | Tempo Int
   | Note (FullNote a)
   deriving (Eq, Ord, Show, Read, Functor)
 
@@ -85,7 +85,7 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
       M.Volume a b -> RTB.delay dt <$> go' (fn { volume = Just (a, b) })
       M.StereoPanning a -> RTB.delay dt <$> go' (fn { stereoPanning = Just a })
       M.PitchBend a b -> RTB.delay dt <$> go' (fn { pitchBend = Just (a, b) })
-      M.Tempo a b -> RTB.cons dt (Tempo a b) <$> go' fn
+      M.Tempo a -> RTB.cons dt (Tempo a) <$> go' fn
       M.On p -> case findOff p rtb' of
         Nothing -> Left
           ( NNC.add posn dt
@@ -154,11 +154,11 @@ encode ch = go 0 12 0 0 . RTB.normalize where
     Just ((dt, x), rtb') -> case x of
       Begin -> Left (posn + dt, "encode: found loop beginning")
       End -> rest
-      Tempo a b -> do
+      Tempo a -> do
         r      <- rest
         def    <- defaultSpeed
         result <- go (posn + dt) def ntVolume ntFade rtb'
-        return $ r ++ [A.Tempo a b] ++ result
+        return $ r ++ [A.Tempo a] ++ result
       Note fn -> case Set.lookupLE (noteLength fn) encodeable of
         -- lookupLE shortens the length if it cannot be represented exactly
         Nothing -> Left (posn + dt, "encode: note length too short to encode: " ++ showRat (noteLength fn) ++ " beats")

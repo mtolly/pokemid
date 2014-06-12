@@ -50,7 +50,7 @@ data Instruction t
   | Duty          Int
   | Volume        Int Int
   | StereoPanning Int
-  | Tempo         Int Int
+  | Tempo         Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
 -- | The basic form of music we support: a sequence of instructions that plays

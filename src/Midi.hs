@@ -39,7 +39,7 @@ data Event
   | Volume Int Int
   | StereoPanning Int
   | PitchBend Int Int
-  | Tempo Int Int
+  | Tempo Int
   | On Int
   deriving (Eq, Ord, Show, Read)
 
@@ -63,8 +63,7 @@ getEvent e = case e of
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
       _                                 -> Nothing
   E.MetaEvent (M.SetTempo t) ->
-    Just $ Tempo `uncurry`
-      quotRem (round $ (toRational t / 1000000) * 320) 256
+    Just $ Tempo $ round $ (toRational t / 1000000) * 320
   _ -> Nothing
 
 fromEvent :: C.Channel -> Event -> E.T
@@ -78,7 +77,7 @@ fromEvent midiChannel e = case e of
   Volume x y -> textCmd "volume" [x, y]
   StereoPanning x -> textCmd "stereopanning" [x]
   PitchBend x y -> textCmd "pitchbend" [x, y]
-  Tempo x y -> E.MetaEvent $ M.SetTempo $ round $ (toRational (x * 256 + y) / 320) * 1000000
+  Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
@@ -119,8 +118,8 @@ fromTracks :: [(String, RTB.T NN.Rational Event)] -> F.T
 fromTracks [] = F.Cons F.Parallel (F.Ticks 480) []
 fromTracks ((name, trk) : trks) = let
   (tempos, rest) = RTB.partition isTempo trk
-  isTempo (Tempo _ _) = True
-  isTempo _           = False
+  isTempo (Tempo {}) = True
+  isTempo _          = False
   tempoTrack = fmap (fromEvent $ C.toChannel 0) tempos
   otherTracks = do
     (n, t) <- (name, rest) : trks

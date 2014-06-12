@@ -65,7 +65,7 @@ Inst :: { Instruction Int }
      | duty int { Duty $2 }
      | volume int ',' int { Volume $2 $4 }
      | stereopanning int { StereoPanning $2 }
-     | tempo int ',' int { Tempo $2 $4 }
+     | tempo int { Tempo $2 }
 
 Control :: { Control String }
         : label '::' { Label $1 }
