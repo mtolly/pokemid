@@ -47,7 +47,7 @@ loopFormToMidi ch (begin, loop) = let
       StereoPanning x -> RTB.cons 0 (M.StereoPanning x) $ go inLoop speed octave is
       Tempo x -> RTB.cons 0 (M.Tempo x) $ go inLoop speed octave is
       where ticksToLen tks = (fromIntegral tks / 4) * (fromIntegral speed / 12)
-  in go False undefined undefined begin
+  in go False undefined 3 begin
 
 channelTracks :: String -> Graph String Int -> [(String, RTB.T NN.Rational M.Event)]
 channelTracks prefix g = do
