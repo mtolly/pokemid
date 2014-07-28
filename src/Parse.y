@@ -17,22 +17,20 @@ import qualified Scan as S
   drum { S.Drum $$ }
   label { S.Label $$ }
   '::' { S.GlobalLabel }
-  note { S.Note }
-  dnote { S.DNote }
   rest { S.Rest }
   notetype { S.NoteType }
   dspeed { S.DSpeed }
   octave { S.Octave }
   vibrato { S.Vibrato }
   duty { S.Duty }
+  volume { S.Volume }
   stereopanning { S.StereoPanning }
-  unknownmusic0xee { S.UnknownMusic0xEE }
   pitchbend { S.PitchBend }
   tempo { S.Tempo }
   loopchannel { S.LoopChannel }
   callchannel { S.CallChannel }
   endchannel { S.EndChannel }
-  togglecall { S.ToggleCall }
+  toggleperfectpitch { S.TogglePerfectPitch }
 
 %%
 
@@ -56,25 +54,25 @@ Line :: { AsmLine }
      | Control { Left $1 }
 
 Inst :: { Instruction Int }
-     : note key ',' int { Note $2 $4 Nothing }
-     | pitchbend int ',' int Newlines note key ',' int { Note $7 $9 $ Just ($2, $4) }
-     | dnote int ',' drum { DNote $2 $4 }
+     : key int { Note $1 $2 Nothing }
+     | pitchbend int ',' int Newlines key int { Note $6 $7 $ Just ($2, $4) }
+     | drum int { DNote $2 $1 }
      | rest int { Rest $2 }
      | notetype int ',' int ',' int { NoteType $2 $4 $6 }
      | dspeed int { DSpeed $2 }
      | octave int { Octave $2 }
      | vibrato int ',' int ',' int { Vibrato $2 $4 $6 }
      | duty int { Duty $2 }
+     | volume int ',' int { Volume $2 $4 }
      | stereopanning int { StereoPanning $2 }
-     | unknownmusic0xee int { UnknownMusic0xEE $2 }
-     | tempo int ',' int { Tempo $2 $4 }
+     | tempo int { Tempo $2 }
 
 Control :: { Control String }
         : label '::' { Label $1 }
         | loopchannel int ',' label { LoopChannel $2 $4 }
         | callchannel label { CallChannel $2 }
         | endchannel { EndChannel }
-        | togglecall { ToggleCall }
+        | toggleperfectpitch { TogglePerfectPitch }
 
 {
 

@@ -48,9 +48,9 @@ data Instruction t
   | Octave        Int
   | Vibrato       Int Int Int
   | Duty          Int
+  | Volume        Int Int
   | StereoPanning Int
-  | UnknownMusic0xEE Int
-  | Tempo         Int Int
+  | Tempo         Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
 -- | The basic form of music we support: a sequence of instructions that plays
@@ -62,7 +62,7 @@ data Control label
   | LoopChannel Int label
   | CallChannel label
   | EndChannel
-  | ToggleCall
+  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read, Functor)
 
 type AsmLine = Either (Control String) (Instruction Int)
@@ -73,7 +73,7 @@ printAsm (Left c) = case c of
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
   CallChannel l   -> makeInstruction "callchannel" [l]
   EndChannel      -> makeInstruction "endchannel" []
-  ToggleCall      -> makeInstruction "togglecall" []
+  TogglePerfectPitch -> makeInstruction "toggleperfectpitch" []
 printAsm (Right i) = case i of
   Note  k t pbend -> let
     pb = case pbend of
@@ -115,7 +115,7 @@ asmSize (Left c) = case c of
   LoopChannel   {} -> 4
   CallChannel   {} -> 3
   EndChannel    {} -> 1
-  ToggleCall    {} -> 1
+  TogglePerfectPitch {} -> 1
 asmSize (Right i) = case i of
   Note   _ _ pbend -> 1 + maybe 0 (const 3) pbend
   DNote         {} -> 2
@@ -125,6 +125,6 @@ asmSize (Right i) = case i of
   Octave        {} -> 1
   Vibrato       {} -> 3
   Duty          {} -> 2
+  Volume        {} -> 2
   StereoPanning {} -> 2
-  UnknownMusic0xEE {} -> 2
   Tempo         {} -> 3

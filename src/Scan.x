@@ -22,22 +22,20 @@ triangle[1-3]   { Drum . Assembly.readDrum }
 cymbal[1-3]     { Drum . Assembly.readDrum }
 mutedsnare[1-4] { Drum . Assembly.readDrum }
 
-note { const Note }
-dnote { const DNote }
 rest { const Rest }
 notetype { const NoteType }
 dspeed { const DSpeed }
 octave { const Octave }
 vibrato { const Vibrato }
 duty { const Duty }
+volume { const Volume }
 stereopanning { const StereoPanning }
-unknownmusic0xee { const UnknownMusic0xEE }
 pitchbend { const PitchBend }
 tempo { const Tempo }
 loopchannel { const LoopChannel }
 callchannel { const CallChannel }
 endchannel { const EndChannel }
-togglecall { const ToggleCall }
+toggleperfectpitch { const TogglePerfectPitch }
 
 [A-Za-z0-9_]+ { Label }
 \:\: { const GlobalLabel }
@@ -60,14 +58,14 @@ data Token
   | Octave
   | Vibrato
   | Duty
+  | Volume
   | StereoPanning
-  | UnknownMusic0xEE
   | PitchBend
   | Tempo
   | LoopChannel
   | CallChannel
   | EndChannel
-  | ToggleCall
+  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read)
 
 scan :: String -> [Token]

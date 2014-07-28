@@ -53,8 +53,8 @@ cleanLoop = let
     , Octave {}
     , Vibrato {}
     , Duty {}
+    , Volume {}
     , StereoPanning {}
-    , UnknownMusic0xEE {}
     , Tempo {}
     ]
   clean _       (b, Nothing) = (b, Nothing)

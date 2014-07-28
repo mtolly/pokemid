@@ -36,10 +36,10 @@ data Event
   | NoteType Int Int
   | Vibrato Int Int Int
   | Duty Int
+  | Volume Int Int
   | StereoPanning Int
-  | UnknownMusic0xEE Int
   | PitchBend Int Int
-  | Tempo Int Int
+  | Tempo Int
   | On Int
   deriving (Eq, Ord, Show, Read)
 
@@ -58,13 +58,12 @@ getEvent e = case e of
       ("duty"         , Just [x]      ) -> Just $ Duty x
       ("notetype"     , Just [_, y, z]) -> Just $ NoteType y z
       ("notetype"     , Just [y, z]   ) -> Just $ NoteType y z
+      ("volume"       , Just [x, y]   ) -> Just $ Volume x y
       ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
-      ("unknownmusic0xee", Just [x]   ) -> Just $ UnknownMusic0xEE x
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
       _                                 -> Nothing
   E.MetaEvent (M.SetTempo t) ->
-    Just $ Tempo `uncurry`
-      quotRem (round $ (toRational t / 1000000) * 320) 256
+    Just $ Tempo $ round $ (toRational t / 1000000) * 320
   _ -> Nothing
 
 fromEvent :: C.Channel -> Event -> E.T
@@ -75,10 +74,10 @@ fromEvent midiChannel e = case e of
   NoteType x y -> textCmd "notetype" [x, y]
   Vibrato x y z -> textCmd "vibrato" [x, y, z]
   Duty x -> textCmd "duty" [x]
+  Volume x y -> textCmd "volume" [x, y]
   StereoPanning x -> textCmd "stereopanning" [x]
-  UnknownMusic0xEE x -> textCmd "unknownmusic0xee" [x]
   PitchBend x y -> textCmd "pitchbend" [x, y]
-  Tempo x y -> E.MetaEvent $ M.SetTempo $ round $ (toRational (x * 256 + y) / 320) * 1000000
+  Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
@@ -119,8 +118,8 @@ fromTracks :: [(String, RTB.T NN.Rational Event)] -> F.T
 fromTracks [] = F.Cons F.Parallel (F.Ticks 480) []
 fromTracks ((name, trk) : trks) = let
   (tempos, rest) = RTB.partition isTempo trk
-  isTempo (Tempo _ _) = True
-  isTempo _           = False
+  isTempo (Tempo {}) = True
+  isTempo _          = False
   tempoTrack = fmap (fromEvent $ C.toChannel 0) tempos
   otherTracks = do
     (n, t) <- (name, rest) : trks
