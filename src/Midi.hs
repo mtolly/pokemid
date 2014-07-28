@@ -9,6 +9,7 @@ import Assembly (Channel(..))
 import qualified Sound.MIDI.File as F
 import qualified Sound.MIDI.File.Event as E
 import qualified Sound.MIDI.File.Event.Meta as M
+import qualified Sound.MIDI.General as G
 import qualified Sound.MIDI.Message.Channel as C
 import qualified Sound.MIDI.Message.Channel.Voice as V
 -- event-list
@@ -124,16 +125,16 @@ fromTracks ((name, trk) : trks) = let
   otherTracks = do
     (n, t) <- (name, rest) : trks
     let channel = getNamedChannel n
-        midiChannel = C.toChannel $ case channel of
-          Ch1 -> 0
-          Ch2 -> 1
-          Ch3 -> 2
-          Ch4 -> 9 -- General MIDI percussion
-        midiProgram = V.toProgram $ case channel of
-          Ch1 -> 80 -- Lead 1 (square)
-          Ch2 -> 80 -- Lead 1 (square)
-          Ch3 -> 81 -- Lead 2 (sawtooth)
-          Ch4 -> 24 -- for drums: Electronic Kit
+        midiChannel = case channel of
+          Ch1 -> G.instrumentChannels !! 0
+          Ch2 -> G.instrumentChannels !! 1
+          Ch3 -> G.instrumentChannels !! 2
+          Ch4 -> G.drumChannel
+        midiProgram = case channel of
+          Ch1 -> G.instrumentToProgram G.Lead1Square
+          Ch2 -> G.instrumentToProgram G.Lead1Square
+          Ch3 -> G.instrumentToProgram G.Lead2Sawtooth
+          Ch4 -> G.drumProgram
         pcEvent = E.MIDIEvent . C.Cons midiChannel . C.Voice . V.ProgramChange
     return
       $ RTB.cons 0 (E.MetaEvent $ M.TrackName n)
