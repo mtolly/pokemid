@@ -17,7 +17,7 @@ Features:
   * Changes tempo with MIDI tempo events.
 
   * Supports the following note modifiers: `notetype`, `pitchbend`, `vibrato`,
-    `duty`, `volume`, and `stereopanning`.
+    `duty`, `volume`, `stereopanning`, and `toggleperfectpitch`.
 
   * Finds repeated sections of assembly events and breaks them out into
     subroutines, called with `callchannel`, to save ROM space.
@@ -29,9 +29,6 @@ Future work:
 [pokecrystal]: https://github.com/kanzure/pokecrystal
 
   * Possibly use `loopchannel` to further shorten the assembly code.
-
-  * Better error reporting: errors should have MIDI positions and better
-    explanations.
 
 ## Usage
 
@@ -55,6 +52,7 @@ For MIDI to assembly, the MIDI file should be in the following format:
       * `volume <left>, <right>`
       * `stereopanning <int>`
       * `pitchbend <int>, <int>`
+      * `toggleperfectpitch`
 
     For documentation on these see the [pokered] project.
     All of these events affect all notes that come after them, except the
