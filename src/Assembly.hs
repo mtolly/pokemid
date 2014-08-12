@@ -79,9 +79,9 @@ printAsm (Right i) = case i of
     pb = case pbend of
       Just (x, y) -> makeInstruction "pitchbend" [show x, show y] ++ "\n"
       Nothing     -> ""
-    note = makeInstruction "note" [showKey k, show t]
+    note = makeInstruction (showKey k) [show t]
     in pb ++ note
-  DNote t d       -> makeInstruction "dnote" [show t, showDrum d]
+  DNote t d       -> makeInstruction (showDrum d) [show t]
   _               -> case words $ show i of
     inst : ints   -> makeInstruction (map toLower inst) ints
     []            -> error "printAsm: shouldn't happen"
