@@ -86,6 +86,7 @@ For MIDI to assembly, the MIDI file should be in the following format:
 
     where `duration` is the length of the note in beats or quarter notes,
     `ticks` is a number from 1 to 16, and `speed` is a number from 1 to 15.
+    Furthermore, `ticks` and `speed` cannot both be 1.
     If a length cannot be exactly represented, the closest one less than it will
     be used. Rests between notes/events can be any length which is a sum of
     encodable lengths.
