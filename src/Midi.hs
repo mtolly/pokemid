@@ -20,7 +20,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- base
 import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
-import Data.List (intercalate, isInfixOf)
+import Data.List (intercalate, isInfixOf, partition)
 
 {- |
 A simplified view of the MIDI events we care about, ignoring things like MIDI
@@ -97,10 +97,12 @@ getTracks :: F.T -> [(String, RTB.T NN.Rational Event)]
 getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
   ticksToRat = RTB.mapTime $ \t -> fromIntegral t / fromIntegral res
   name t = fromMaybe (error "getTracks: track without name") $ trackName t
+  isCh1 str = drop (length str - 3) str == "Ch1"
   in case map ticksToRat trks of
-    tempo : trk1 : trks' -> do
-      (isFirst, t) <- (True, RTB.merge tempo trk1) : map ((,) False) trks'
-      return (name $ if isFirst then trk1 else t, RTB.mapMaybe getEvent t)
+    tempo : trks' -> case partition (isCh1 . name) trks' of
+      ([ch1], notCh1) -> (name ch1, RTB.mapMaybe getEvent $ RTB.merge tempo ch1)
+        : map (\t -> (name t, RTB.mapMaybe getEvent t)) notCh1
+      _ -> error "getTracks: no Ch1 track to attach tempos to"
     _ -> []
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 
