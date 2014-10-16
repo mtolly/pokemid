@@ -112,6 +112,9 @@ encodeLengths = do
   let firstSpds = [12,6,8,4]
   spd <- firstSpds ++ filter (`notElem` firstSpds) [1..15]
   tks <- [16,15..1]
+  guard $ (spd, tks) /= (1, 1)
+  -- speed=1 ticks=1 breaks the engine for some reason,
+  -- the note/rest lasts much longer than it should.
   return ((fromIntegral tks / 4) * (fromIntegral spd / 12), (spd, tks))
 
 -- | The set of all note lengths that can be represented.
