@@ -51,6 +51,7 @@ data Instruction t
   | Volume        Int Int
   | StereoPanning Int
   | Tempo         Int
+  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
 -- | The basic form of music we support: a sequence of instructions that plays
@@ -62,7 +63,6 @@ data Control label
   | LoopChannel Int label
   | CallChannel label
   | EndChannel
-  | TogglePerfectPitch
   deriving (Eq, Ord, Show, Read, Functor)
 
 type AsmLine = Either (Control String) (Instruction Int)
@@ -73,7 +73,6 @@ printAsm (Left c) = case c of
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
   CallChannel l   -> makeInstruction "callchannel" [l]
   EndChannel      -> makeInstruction "endchannel" []
-  TogglePerfectPitch -> makeInstruction "toggleperfectpitch" []
 printAsm (Right i) = case i of
   Note  k t pbend -> let
     pb = case pbend of
@@ -115,7 +114,6 @@ asmSize (Left c) = case c of
   LoopChannel   {} -> 4
   CallChannel   {} -> 3
   EndChannel    {} -> 1
-  TogglePerfectPitch {} -> 1
 asmSize (Right i) = case i of
   Note   _ _ pbend -> 1 + maybe 0 (const 3) pbend
   DNote         {} -> 2
@@ -128,3 +126,4 @@ asmSize (Right i) = case i of
   Volume        {} -> 2
   StereoPanning {} -> 2
   Tempo         {} -> 3
+  TogglePerfectPitch {} -> 1

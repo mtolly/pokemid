@@ -41,6 +41,7 @@ data Event
   | StereoPanning Int
   | PitchBend Int Int
   | Tempo Int
+  | TogglePerfectPitch
   | On Int
   deriving (Eq, Ord, Show, Read)
 
@@ -62,6 +63,7 @@ getEvent e = case e of
       ("volume"       , Just [x, y]   ) -> Just $ Volume x y
       ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
+      ("toggleperfectpitch", Just []  ) -> Just TogglePerfectPitch
       _                                 -> Nothing
   E.MetaEvent (M.SetTempo t) ->
     Just $ Tempo $ round $ (toRational t / 1000000) * 320
@@ -79,6 +81,7 @@ fromEvent midiChannel e = case e of
   StereoPanning x -> textCmd "stereopanning" [x]
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
+  TogglePerfectPitch -> E.MetaEvent $ M.TextEvent "toggleperfectpitch"
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
