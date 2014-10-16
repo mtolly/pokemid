@@ -46,6 +46,7 @@ loopFormToMidi ch (begin, loop) = let
       Volume l r -> RTB.cons 0 (M.Volume l r) $ go inLoop speed octave is
       StereoPanning x -> RTB.cons 0 (M.StereoPanning x) $ go inLoop speed octave is
       Tempo x -> RTB.cons 0 (M.Tempo x) $ go inLoop speed octave is
+      TogglePerfectPitch -> RTB.cons 0 M.TogglePerfectPitch $ go inLoop speed octave is
       where ticksToLen tks = (fromIntegral tks / 4) * (fromIntegral speed / 12)
   in go False undefined 3 begin
 

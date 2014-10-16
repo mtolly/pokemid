@@ -20,7 +20,7 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- base
 import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
-import Data.List (intercalate, isInfixOf)
+import Data.List (intercalate, isInfixOf, partition)
 
 {- |
 A simplified view of the MIDI events we care about, ignoring things like MIDI
@@ -41,6 +41,7 @@ data Event
   | StereoPanning Int
   | PitchBend Int Int
   | Tempo Int
+  | TogglePerfectPitch
   | On Int
   deriving (Eq, Ord, Show, Read)
 
@@ -62,6 +63,7 @@ getEvent e = case e of
       ("volume"       , Just [x, y]   ) -> Just $ Volume x y
       ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
       ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
+      ("toggleperfectpitch", Just []  ) -> Just TogglePerfectPitch
       _                                 -> Nothing
   E.MetaEvent (M.SetTempo t) ->
     Just $ Tempo $ round $ (toRational t / 1000000) * 320
@@ -79,6 +81,7 @@ fromEvent midiChannel e = case e of
   StereoPanning x -> textCmd "stereopanning" [x]
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
+  TogglePerfectPitch -> E.MetaEvent $ M.TextEvent "toggleperfectpitch"
   On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
@@ -97,10 +100,12 @@ getTracks :: F.T -> [(String, RTB.T NN.Rational Event)]
 getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
   ticksToRat = RTB.mapTime $ \t -> fromIntegral t / fromIntegral res
   name t = fromMaybe (error "getTracks: track without name") $ trackName t
+  isCh1 str = drop (length str - 3) str == "Ch1"
   in case map ticksToRat trks of
-    tempo : trk1 : trks' -> do
-      (isFirst, t) <- (True, RTB.merge tempo trk1) : map ((,) False) trks'
-      return (name $ if isFirst then trk1 else t, RTB.mapMaybe getEvent t)
+    tempo : trks' -> case partition (isCh1 . name) trks' of
+      ([ch1], notCh1) -> (name ch1, RTB.mapMaybe getEvent $ RTB.merge tempo ch1)
+        : map (\t -> (name t, RTB.mapMaybe getEvent t)) notCh1
+      _ -> error "getTracks: no Ch1 track to attach tempos to"
     _ -> []
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 

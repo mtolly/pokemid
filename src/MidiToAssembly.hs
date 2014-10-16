@@ -51,6 +51,7 @@ data Simple a
   = Begin
   | End
   | Tempo Int
+  | TogglePerfectPitch
   | Note (FullNote a)
   deriving (Eq, Ord, Show, Read, Functor)
 
@@ -95,6 +96,7 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
           (Note $ fn { pitch = readPitch ch p, noteLength = len })
           <$> go' (fn { pitchBend = Nothing })
       M.End -> RTB.cons dt End <$> go' fn
+      M.TogglePerfectPitch -> RTB.cons dt TogglePerfectPitch <$> go' fn
       where go' fn' = go (NNC.add posn dt) fn' rtb'
 
 splitLoop :: (NNC.C t) =>
@@ -110,6 +112,9 @@ encodeLengths = do
   let firstSpds = [12,6,8,4]
   spd <- firstSpds ++ filter (`notElem` firstSpds) [1..15]
   tks <- [16,15..1]
+  guard $ (spd, tks) /= (1, 1)
+  -- speed=1 ticks=1 breaks the engine for some reason,
+  -- the note/rest lasts much longer than it should.
   return ((fromIntegral tks / 4) * (fromIntegral spd / 12), (spd, tks))
 
 -- | The set of all note lengths that can be represented.
@@ -159,6 +164,11 @@ encode ch = go 0 12 0 0 . RTB.normalize where
         def    <- defaultSpeed
         result <- go (posn + dt) def ntVolume ntFade rtb'
         return $ r ++ [A.Tempo a] ++ result
+      TogglePerfectPitch -> do
+        r      <- rest
+        def    <- defaultSpeed
+        result <- go (posn + dt) def ntVolume ntFade rtb'
+        return $ r ++ [A.TogglePerfectPitch] ++ result
       Note fn -> case Set.lookupLE (noteLength fn) encodeable of
         -- lookupLE shortens the length if it cannot be represented exactly
         Nothing -> Left (posn + dt, "encode: note length too short to encode: " ++ showRat (noteLength fn) ++ " beats")

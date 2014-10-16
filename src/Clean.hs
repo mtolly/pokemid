@@ -15,10 +15,11 @@ sameConstructor x y = toConstr (() <$ x) == toConstr (() <$ y)
 -- | True if the command is one that changes a setting for all events after it.
 isSetting :: Instruction t -> Bool
 isSetting x = case x of
-  Note      {} -> False
-  DNote     {} -> False
-  Rest      {} -> False
-  _            -> True
+  Note            {} -> False
+  DNote           {} -> False
+  Rest            {} -> False
+  TogglePerfectPitch -> False
+  _                  -> True
 
 -- | True if two instructions are equal, ignoring any tick-length parameters.
 -- Intended to only be used for setting commands ('Vibrato', etc.).

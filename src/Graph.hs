@@ -34,7 +34,6 @@ makeGraph asm = let
     LoopChannel n l -> Loop n l $ pathToBlock rest
     CallChannel l -> Call l $ pathToBlock rest
     EndChannel -> End
-    TogglePerfectPitch -> pathToBlock rest -- TODO
   pathToBlock (Right i : rest) = Inst i $ pathToBlock rest
   in Map.fromList $ zip labels $ map (pathToBlock . findLabel) labels
 

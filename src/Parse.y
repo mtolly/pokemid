@@ -66,13 +66,13 @@ Inst :: { Instruction Int }
      | volume int ',' int { Volume $2 $4 }
      | stereopanning int { StereoPanning $2 }
      | tempo int { Tempo $2 }
+     | toggleperfectpitch { TogglePerfectPitch }
 
 Control :: { Control String }
         : label '::' { Label $1 }
         | loopchannel int ',' label { LoopChannel $2 $4 }
         | callchannel label { CallChannel $2 }
         | endchannel { EndChannel }
-        | toggleperfectpitch { TogglePerfectPitch }
 
 {
 
