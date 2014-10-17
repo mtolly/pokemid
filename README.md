@@ -32,8 +32,9 @@ Future work:
 
 ## Usage
 
-    pokemid in.asm out.mid    # assembly to MIDI
-    pokemid in.mid > out.asm  # MIDI to assembly
+    pokemid in.asm out.mid # assembly to MIDI
+    pokemid in.mid out.asm # MIDI to assembly
+    # Second argument can be elided to go to stdout
 
 For MIDI to assembly, the MIDI file should be in the following format:
 
