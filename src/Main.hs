@@ -75,22 +75,39 @@ asmToMid str = let
     , d `elem` "1234"
     ]
   mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
-  in return $ BL.toStrict $ Save.toByteString mid
+  bs = BL.toStrict $ Save.toByteString mid
+  in do
+    _ <- evaluate bs
+    return bs
 
 isMidi :: FilePath -> IO Bool
 isMidi fp = withFile fp ReadMode $ \h -> do
   b <- B.hGet h 4
   return $ b == B8.pack "MThd"
 
+printUsage :: IO ()
+printUsage = do
+  prog <- getProgName
+  mapM_ (hPutStrLn stderr)
+    [ prog ++ " v" ++ showVersion version
+    , "Usage: "++prog++" in.mid > out.asm"
+    , "       "++prog++" in.asm > out.mid"
+    , "       "++prog++" in.mid out.asm"
+    , "       "++prog++" in.asm out.mid"
+    ]
+
 main :: IO ()
 main = do
   argv <- getArgs
   case argv of
-    [fmid] -> B.readFile fmid >>= midToAsm >>= putStr
-    [fasm, fmid] -> readFile fasm >>= asmToMid >>= B.writeFile fmid
-    _ -> do
-      prog <- getProgName
-      hPutStrLn stderr $ prog ++ " v" ++ showVersion version
-      hPutStrLn stderr $ "Usage: "++prog++" in.mid > out.asm"
-      hPutStrLn stderr $ "       "++prog++" in.asm out.mid"
-      exitFailure
+    [f1] -> do
+      m2a <- isMidi f1
+      if m2a
+        then B.readFile f1 >>= midToAsm >>= putStr
+        else readFile f1 >>= asmToMid >>= B.putStr
+    [f1, f2] -> do
+      m2a <- isMidi f1
+      if m2a
+        then B.readFile f1 >>= midToAsm >>= writeFile f2
+        else readFile f1 >>= asmToMid >>= B.writeFile f2
+    _ -> printUsage >> exitFailure
