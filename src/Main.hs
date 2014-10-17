@@ -1,7 +1,9 @@
-module Main where
+module Main (main) where
 
 import Paths_pokemid (version)
 import Data.Version (showVersion)
+import System.Environment (getArgs, getProgName)
+
 import qualified Scan
 import qualified Parse
 import qualified Assembly
@@ -12,30 +14,35 @@ import qualified MidiToAssembly
 import qualified Clean
 import qualified Emit
 import qualified Error
-import Control.Applicative ((<$>))
+
 import qualified Sound.MIDI.File.Load as Load
 import qualified Sound.MIDI.File.Save as Save
-import System.Environment (getArgs, getProgName)
-import qualified Data.Map as Map
-import Control.Monad (forM_)
-import System.IO (stderr, hPutStrLn)
-import System.Exit (exitFailure)
+import Sound.MIDI.Parser.Report (T(..))
 
-main :: IO ()
-main = do
-  argv <- getArgs
-  case argv of
-    [fmid] -> do
-      mid <- Load.fromFile fmid
-      let trks = Midi.getTracks mid
-          tempoTrack = Error.getTempoTrack mid
-          showPosn posn = let
-            (m, b) = Error.posnToMeasureBeats tempoTrack posn
-            whole :: Int
-            (whole, part) = properFraction b
-            in "Measure " ++ show (m + 1) ++ ", beat " ++ show (whole + 1) ++
-              if part == 0 then "" else ", part " ++ MidiToAssembly.showRat part
-      forM_ trks $ \(name, trk) -> let
+import System.IO (stderr, hPutStrLn, withFile, IOMode(..))
+import System.Exit (exitFailure)
+import Control.Exception (evaluate)
+
+import Control.Applicative ((<$>))
+import qualified Data.Map as Map
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Char8 as B8
+
+midToAsm :: B.ByteString -> IO String
+midToAsm bs = do
+  mid <- case Load.maybeFromByteString $ BL.fromStrict bs of
+    Cons _ (Right mid) -> return mid
+    err                -> error $ show err
+  let trks = Midi.getTracks mid
+      tempoTrack = Error.getTempoTrack mid
+      showPosn posn = let
+        (m, b) = Error.posnToMeasureBeats tempoTrack posn
+        whole :: Int
+        (whole, part) = properFraction b
+        in "Measure " ++ show (m + 1) ++ ", beat " ++ show (whole + 1) ++
+          if part == 0 then "" else ", part " ++ MidiToAssembly.showRat part
+      codeLines = flip concatMap trks $ \(name, trk) -> let
         chan = Midi.getNamedChannel name
         in case MidiToAssembly.simplify chan trk of
           Left (pos, e) -> error $ showPosn pos ++ ": " ++ e
@@ -49,21 +56,38 @@ main = do
               (Right b, Just (Right l)) -> let
                 beginLoop = Clean.cleanLoop (b, Just l)
                 code = Emit.optimize name beginLoop
-                in forM_ code $ putStrLn . Assembly.printAsm
+                in map Assembly.printAsm code
               (Right b, Nothing) -> let
                 beginLoop = Clean.cleanLoop (b, Nothing)
                 code = Emit.optimize name beginLoop
-                in forM_ code $ putStrLn . Assembly.printAsm
-    [fasm, fmid] -> do
-      graph <- Graph.makeGraph . Parse.parse . Scan.scan <$> readFile fasm
-      let prefix = head
-            [ reverse pre
-            | s <- Map.keys graph
-            , d : 'h' : 'C' : pre <- [reverse s]
-            , d `elem` "1234"
-            ]
-          mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
-      Save.toFile fmid mid
+                in map Assembly.printAsm code
+      codeStr = unlines codeLines
+  _ <- evaluate $ length codeStr
+  return codeStr
+
+asmToMid :: String -> IO B.ByteString
+asmToMid str = let
+  graph = Graph.makeGraph $ Parse.parse $ Scan.scan str
+  prefix = head
+    [ reverse pre
+    | s <- Map.keys graph
+    , d : 'h' : 'C' : pre <- [reverse s]
+    , d `elem` "1234"
+    ]
+  mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
+  in return $ BL.toStrict $ Save.toByteString mid
+
+isMidi :: FilePath -> IO Bool
+isMidi fp = withFile fp ReadMode $ \h -> do
+  b <- B.hGet h 4
+  return $ b == B8.pack "MThd"
+
+main :: IO ()
+main = do
+  argv <- getArgs
+  case argv of
+    [fmid] -> B.readFile fmid >>= midToAsm >>= putStr
+    [fasm, fmid] -> readFile fasm >>= asmToMid >>= B.writeFile fmid
     _ -> do
       prog <- getProgName
       hPutStrLn stderr $ prog ++ " v" ++ showVersion version
