@@ -31,6 +31,8 @@ import qualified Scan as S
   callchannel { S.CallChannel }
   endchannel { S.EndChannel }
   toggleperfectpitch { S.TogglePerfectPitch }
+  executemusic { S.ExecuteMusic }
+  dutycycle { S.DutyCycle }
 
 %%
 
@@ -67,6 +69,8 @@ Inst :: { Instruction Int }
      | stereopanning int { StereoPanning $2 }
      | tempo int { Tempo $2 }
      | toggleperfectpitch { TogglePerfectPitch }
+     | executemusic { ExecuteMusic }
+     | dutycycle int { DutyCycle $2 }
 
 Control :: { Control String }
         : label '::' { Label $1 }

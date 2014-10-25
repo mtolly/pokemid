@@ -52,6 +52,8 @@ data Instruction t
   | StereoPanning Int
   | Tempo         Int
   | TogglePerfectPitch
+  | ExecuteMusic
+  | DutyCycle     Int
   deriving (Eq, Ord, Show, Read, Functor, Data, Typeable)
 
 -- | The basic form of music we support: a sequence of instructions that plays
@@ -127,3 +129,5 @@ asmSize (Right i) = case i of
   StereoPanning {} -> 2
   Tempo         {} -> 3
   TogglePerfectPitch {} -> 1
+  ExecuteMusic  {} -> 1
+  DutyCycle     {} -> 2

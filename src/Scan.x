@@ -36,6 +36,8 @@ loopchannel { const LoopChannel }
 callchannel { const CallChannel }
 endchannel { const EndChannel }
 toggleperfectpitch { const TogglePerfectPitch }
+executemusic { const ExecuteMusic }
+dutycycle { const DutyCycle }
 
 [A-Za-z0-9_]+ { Label }
 \:\: { const GlobalLabel }
@@ -66,6 +68,8 @@ data Token
   | CallChannel
   | EndChannel
   | TogglePerfectPitch
+  | ExecuteMusic
+  | DutyCycle
   deriving (Eq, Ord, Show, Read)
 
 scan :: String -> [Token]
