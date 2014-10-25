@@ -8,4 +8,4 @@ before_install:
   - cabal install alex happy
 
 script:
-  - cabal configure && cabal build && ./test.sh
+  - cabal configure && cabal build && test/run

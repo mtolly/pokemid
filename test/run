@@ -2,7 +2,7 @@
 set -e
 set -u
 
-for asm in test/*.asm; do
+for asm in `dirname $0`/fixtures/*.asm; do
   echo " => $asm"
   echo "asm -> mid"
   dist/build/pokemid/pokemid $asm $asm.mid
