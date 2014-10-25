@@ -1,5 +1,7 @@
 # Pokémon Red/Blue MIDI music converter
 
+[![Build Status](https://travis-ci.org/mtolly/pokemid.svg?branch=master)](https://travis-ci.org/mtolly/pokemid)
+
 This is a tool for the [Pokémon Red/Blue disassembly project][pokered], which
 allows editing the music tracks by exporting them to MIDI files and then
 importing them back into assembly.
