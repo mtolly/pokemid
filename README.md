@@ -32,6 +32,29 @@ Future work:
 
   * Possibly use `loopchannel` to further shorten the assembly code.
 
+## Build
+
+Windows/Mac/Linux executables are posted on the [releases] page. To build the
+latest code yourself:
+
+[releases]: https://github.com/mtolly/pokemid/releases
+
+  1. Install the [Haskell Platform], or (for advanced users)
+    [GHC] + [Alex] + [Happy] + [`cabal-install`][cabal].
+    GHC 7.6 and 7.8 are supported but others may work.
+
+[Haskell Platform]: https://www.haskell.org/platform/
+[GHC]: https://www.haskell.org/ghc/
+[Alex]: https://www.haskell.org/alex/
+[Happy]: https://www.haskell.org/happy/
+[cabal]: https://www.haskell.org/haskellwiki/Cabal-Install
+
+  2. `cabal update` if necessary to download package lists.
+
+  2. In the `pokemid` directory, `cabal install` to build and install.
+    Or, `cabal build` and move `dist/build/pokemid/pokemid` to the
+    directory of your choice.
+
 ## Usage
 
     pokemid in.asm out.mid # assembly to MIDI
