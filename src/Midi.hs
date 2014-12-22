@@ -96,17 +96,22 @@ trackName rtb = case RTB.viewL $ RTB.collectCoincident rtb of
       _   -> Nothing
   _ -> Nothing
 
+isChannelTrack :: (NNC.C t) => RTB.T t E.T -> Bool
+isChannelTrack trk = case trackName trk of
+  Nothing -> False
+  Just s  -> any (`isInfixOf` s) $ map show [Ch1 .. Ch4]
+
 getTracks :: F.T -> [(String, RTB.T NN.Rational Event)]
 getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
   ticksToRat = RTB.mapTime $ \t -> fromIntegral t / fromIntegral res
   name t = fromMaybe (error "getTracks: track without name") $ trackName t
   isCh1 str = drop (length str - 3) str == "Ch1"
-  in case map ticksToRat trks of
-    tempo : trks' -> case partition (isCh1 . name) trks' of
+  in case partition isChannelTrack $ map ticksToRat trks of
+    (trks', tempos) -> case partition (isCh1 . name) trks' of
       ([ch1], notCh1) -> (name ch1, RTB.mapMaybe getEvent $ RTB.merge tempo ch1)
         : map (\t -> (name t, RTB.mapMaybe getEvent t)) notCh1
       _ -> error "getTracks: no Ch1 track to attach tempos to"
-    _ -> []
+      where tempo = foldr RTB.merge RTB.empty tempos
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 
 -- | Looks for a channel name in the track name.

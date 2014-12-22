@@ -2,6 +2,7 @@
 module Error where
 
 import MidiToAssembly (Simple(..))
+import Midi (isChannelTrack)
 import qualified Numeric.NonNegative.Wrapper as NN
 import qualified Numeric.NonNegative.Class as NNC
 import qualified Data.EventList.Relative.TimeBody as RTB
@@ -11,9 +12,9 @@ import qualified Sound.MIDI.File.Event.Meta as M
 import Data.Maybe (mapMaybe)
 
 getTempoTrack :: F.T -> RTB.T NN.Rational E.T
-getTempoTrack (F.Cons F.Parallel (F.Ticks res) (tempoTrk : _)) = let
+getTempoTrack (F.Cons F.Parallel (F.Ticks res) trks) = let
   ticksToRat = RTB.mapTime $ \t -> fromIntegral t / fromIntegral res
-  in ticksToRat tempoTrk
+  in ticksToRat $ foldr RTB.merge RTB.empty $ filter (not . isChannelTrack) trks
 getTempoTrack _ = error "getTempoTrack: not a proper MIDI file"
 
 findEnd :: (NNC.C t) => RTB.T t (Simple t) -> t
