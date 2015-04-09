@@ -12,11 +12,12 @@ import qualified Scan as S
 %token
   newline { S.Newline }
   ',' { S.Comma }
+  ':' { S.Colon }
+  '.' { S.Dot }
   int { S.Int $$ }
   key { S.Key $$ }
   drum { S.Drum $$ }
   label { S.Label $$ }
-  '::' { S.GlobalLabel }
   rest { S.Rest }
   notetype { S.NoteType }
   dspeed { S.DSpeed }
@@ -73,7 +74,10 @@ Inst :: { Instruction Int }
      | dutycycle int { DutyCycle $2 }
 
 Control :: { Control String }
-        : label '::' { Label $1 }
+        : label ':' ':' { Label $1 }
+        | label ':' { Label $1 }
+        | '.' label { LocalLabel $2 }
+        | '.' label ':' { LocalLabel $2 }
         | loopchannel int ',' label { LoopChannel $2 $4 }
         | callchannel label { CallChannel $2 }
         | endchannel { EndChannel }

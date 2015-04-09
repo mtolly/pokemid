@@ -67,7 +67,7 @@ midToAsm bs = do
 
 asmToMid :: String -> IO B.ByteString
 asmToMid str = let
-  graph = Graph.makeGraph $ Parse.parse $ Scan.scan str
+  graph = Graph.makeGraph $ Graph.localToGlobal $ Parse.parse $ Scan.scan str
   prefix = head
     [ reverse pre
     | s <- Map.keys graph

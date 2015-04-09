@@ -40,18 +40,20 @@ executemusic { const ExecuteMusic }
 dutycycle { const DutyCycle }
 
 [A-Za-z0-9_]+ { Label }
-\:\: { const GlobalLabel }
+\: { const Colon }
+\. { const Dot }
 
 {
 
 data Token
   = Newline
   | Comma
+  | Dot
+  | Colon
   | Int Int
   | Key Assembly.Key
   | Drum Assembly.Drum
   | Label String
-  | GlobalLabel
   | Note
   | DNote
   | Rest

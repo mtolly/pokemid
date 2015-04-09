@@ -62,6 +62,7 @@ type LoopForm t = ([Instruction t], Maybe [Instruction t])
 
 data Control label
   = Label       label
+  | LocalLabel  label
   | LoopChannel Int label
   | CallChannel label
   | EndChannel
@@ -72,6 +73,7 @@ type AsmLine = Either (Control String) (Instruction Int)
 printAsm :: AsmLine -> String
 printAsm (Left c) = case c of
   Label       l   -> l ++ "::"
+  LocalLabel  l   -> "." ++ l
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
   CallChannel l   -> makeInstruction "callchannel" [l]
   EndChannel      -> makeInstruction "endchannel" []
@@ -113,6 +115,7 @@ readDrum (c   : s) = read $ toUpper c : s
 asmSize :: AsmLine -> Int
 asmSize (Left c) = case c of
   Label         {} -> 0
+  LocalLabel    {} -> 0
   LoopChannel   {} -> 4
   CallChannel   {} -> 3
   EndChannel    {} -> 1

@@ -20,7 +20,31 @@ data Block s t
 
 type Graph s t = Map.Map s (Block s t)
 
+-- | Rewrites local labels into global ones, with a prefix appended per scope.
+localToGlobal
+  :: [Either (Control String) (Instruction t)]
+  -> [Either (Control String) (Instruction t)]
+localToGlobal insts = let
+  scopes = splitScopes insts
+  splitScopes [] = []
+  splitScopes (x : xs) = case break isGlobal xs of
+    (s, rest) -> (x : s) : splitScopes rest
+  isGlobal (Left (Label _)) = True
+  isGlobal _                = False
+  fixScope (s, i) = let
+    -- For each scope, find all the local labels inside it.
+    -- A local label should shadow a global label with the same name.
+    locals = [ l | Left (LocalLabel l) <- s ]
+    in flip map s $ \e -> case e of
+      Left (LocalLabel lbl) -> Left $ Label $ fromLocal lbl
+      Left c                -> Left $ flip fmap c $ \lbl ->
+        if lbl `elem` locals then fromLocal lbl else lbl
+      Right inst            -> Right inst
+      where fromLocal lbl = "localscope" ++ show i ++ "_" ++ lbl
+  in concatMap fixScope $ zip scopes ([0..] :: [Int])
+
 -- | Converts the raw assembly sequence into a mapping from labels to blocks.
+-- Will crash if given local labels; use localToGlobal first.
 makeGraph :: Ord s => [Either (Control s) (Instruction t)] -> Graph s t
 makeGraph asm = let
   labels = [ s | Left (Label s) <- asm ]
@@ -30,6 +54,8 @@ makeGraph asm = let
   pathToBlock [] = End
   pathToBlock (Left c : rest) = case c of
     Label l -> Goto l
+    LocalLabel _ -> error
+      "makeGraph: panic! encountered a local label. call localToGlobal first"
     LoopChannel 0 l -> Goto l
     LoopChannel n l -> Loop n l $ pathToBlock rest
     CallChannel l -> Call l $ pathToBlock rest
