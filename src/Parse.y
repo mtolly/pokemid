@@ -6,34 +6,34 @@ import qualified Scan as S
 }
 
 %name parse
-%tokentype { S.Token }
+%tokentype { (S.AlexPosn, S.Token) }
 %error { parseError }
 
 %token
-  newline { S.Newline }
-  ',' { S.Comma }
-  ':' { S.Colon }
-  '.' { S.Dot }
-  int { S.Int $$ }
-  key { S.Key $$ }
-  drum { S.Drum $$ }
-  label { S.Label $$ }
-  rest { S.Rest }
-  notetype { S.NoteType }
-  dspeed { S.DSpeed }
-  octave { S.Octave }
-  vibrato { S.Vibrato }
-  duty { S.Duty }
-  volume { S.Volume }
-  stereopanning { S.StereoPanning }
-  pitchbend { S.PitchBend }
-  tempo { S.Tempo }
-  loopchannel { S.LoopChannel }
-  callchannel { S.CallChannel }
-  endchannel { S.EndChannel }
-  toggleperfectpitch { S.TogglePerfectPitch }
-  executemusic { S.ExecuteMusic }
-  dutycycle { S.DutyCycle }
+  newline { (_, S.Newline) }
+  ',' { (_, S.Comma) }
+  ':' { (_, S.Colon) }
+  '.' { (_, S.Dot) }
+  int { (_, S.Int $$) }
+  key { (_, S.Key $$) }
+  drum { (_, S.Drum $$) }
+  label { (_, S.Label $$) }
+  rest { (_, S.Rest) }
+  notetype { (_, S.NoteType) }
+  dspeed { (_, S.DSpeed) }
+  octave { (_, S.Octave) }
+  vibrato { (_, S.Vibrato) }
+  duty { (_, S.Duty) }
+  volume { (_, S.Volume) }
+  stereopanning { (_, S.StereoPanning) }
+  pitchbend { (_, S.PitchBend) }
+  tempo { (_, S.Tempo) }
+  loopchannel { (_, S.LoopChannel) }
+  callchannel { (_, S.CallChannel) }
+  endchannel { (_, S.EndChannel) }
+  toggleperfectpitch { (_, S.TogglePerfectPitch) }
+  executemusic { (_, S.ExecuteMusic) }
+  dutycycle { (_, S.DutyCycle) }
 
 %%
 
@@ -84,7 +84,9 @@ Control :: { Control String }
 
 {
 
-parseError :: [S.Token] -> a
-parseError _ = error "Parse error"
+parseError :: [(S.AlexPosn, S.Token)] -> a
+parseError [] = error "Parse error at end of file"
+parseError ((S.AlexPn _ r c, tok) : _) = error $
+  "parse error at line " ++ show r ++ ", column " ++ show c ++ ", token: " ++ show tok
 
 }
