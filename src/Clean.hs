@@ -2,11 +2,14 @@
 Cleans up the assembly code by removing redundant status change commands,
 both within a single section and across the loop boundary.
 -}
+{-# LANGUAGE CPP #-}
 module Clean where
 
 import Assembly
 import Data.Data (toConstr)
+#if __GLASGOW_HASKELL__ < 710
 import Control.Applicative ((<$))
+#endif
 
 -- | True if the two commands are the same type of command.
 sameConstructor :: Instruction t -> Instruction t -> Bool

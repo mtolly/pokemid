@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE CPP #-}
 module MidiToAssembly where
 
 import qualified Assembly as A
@@ -11,7 +12,10 @@ import qualified Numeric.NonNegative.Wrapper as NN
 -- containers
 import qualified Data.Set as Set
 -- base
-import Control.Applicative ((<|>), (<$>))
+import Control.Applicative ((<|>))
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>))
+#endif
 import Control.Monad (guard)
 import Data.Maybe (mapMaybe, listToMaybe, catMaybes, fromJust)
 import Data.Ratio (numerator, denominator)
