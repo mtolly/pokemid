@@ -32,9 +32,17 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as B8
 
+-- | Later versions of Data.ByteString.Lazy define this.
+toStrict :: BL.ByteString -> B.ByteString
+toStrict = B.concat . BL.toChunks
+
+-- | Later versions of Data.ByteString.Lazy define this.
+fromStrict :: B.ByteString -> BL.ByteString
+fromStrict b = BL.fromChunks [b]
+
 midToAsm :: B.ByteString -> IO String
 midToAsm bs = do
-  mid <- case Load.maybeFromByteString $ BL.fromStrict bs of
+  mid <- case Load.maybeFromByteString $ fromStrict bs of
     Cons _ (Right mid) -> return mid
     err                -> error $ show err
   let trks = Midi.getTracks mid
@@ -78,7 +86,7 @@ asmToMid str = let
     , d `elem` "1234"
     ]
   mid = Midi.fromTracks $ AssemblyToMidi.channelTracks prefix graph
-  bs = BL.toStrict $ Save.toByteString mid
+  bs = toStrict $ Save.toByteString mid
   in do
     _ <- evaluate bs
     return bs

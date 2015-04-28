@@ -18,9 +18,9 @@ import qualified Data.EventList.Relative.TimeBody as RTB
 import qualified Numeric.NonNegative.Class as NNC
 import qualified Numeric.NonNegative.Wrapper as NN
 -- base
-import Text.Read (readMaybe)
-import Data.Maybe (fromMaybe)
+import Data.Char (isSpace)
 import Data.List (intercalate, isInfixOf, partition)
+import Data.Maybe (fromMaybe)
 
 {- |
 A simplified view of the MIDI events we care about, ignoring things like MIDI
@@ -44,6 +44,13 @@ data Event
   | TogglePerfectPitch
   | On Int
   deriving (Eq, Ord, Show, Read)
+
+-- | Defined in recent versions of Text.Read,
+-- but redefined here for compatibility.
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case reads s of
+  [(x, s')] | all isSpace s' -> Just x
+  _                          -> Nothing
 
 getEvent :: E.T -> Maybe Event
 getEvent e = case e of
