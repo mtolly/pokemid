@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+wine cabal sandbox init
+wine cabal install --only-dependencies
+wine cabal configure
+wine cabal build
+wine strip dist/build/pokemid/pokemid.exe

@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+`cabal sandbox init`
+`cabal info .`.match(/^* pokemid-([0-9\.]+)/) do |md|
+  puts "pokemid-v#{md[1]}"
+  true
+end or throw "Couldn't find the package version"
