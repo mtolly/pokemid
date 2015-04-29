@@ -41,7 +41,7 @@ latest code yourself:
 
   1. Install the [Haskell Platform], or (for advanced users)
     [GHC] + [Alex] + [Happy] + [`cabal-install`][cabal].
-    GHC 7.6 and 7.8 are supported but others may work.
+    GHC 7.4, 7.6, 7.8, and 7.10 are tested.
 
 [Haskell Platform]: https://www.haskell.org/platform/
 [GHC]: https://www.haskell.org/ghc/
@@ -51,9 +51,12 @@ latest code yourself:
 
   2. `cabal update` if necessary to download package lists.
 
-  2. In the `pokemid` directory, `cabal install` to build and install.
-    Or, `cabal build` and move `dist/build/pokemid/pokemid` to the
-    directory of your choice.
+  3. In the `pokemid` directory,
+    `cabal sandbox init` if you want the installed dependencies sandboxed (recommended).
+
+  4. `cabal install` to build and install.
+    Or, `cabal build` and then move `dist/build/pokemid/pokemid(.exe)`
+    to the directory of your choice.
 
 ## Usage
 

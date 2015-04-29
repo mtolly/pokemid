@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+set -e
+set -u
+
+rm -rf dist/
 cabal sandbox init
 cabal install --only-dependencies
 cabal configure
