@@ -42,7 +42,7 @@ data Event
   | PitchBend Int Int
   | Tempo Int
   | TogglePerfectPitch
-  | On Int
+  | On Int Int -- ^ On pitch velocity
   deriving (Eq, Ord, Show, Read)
 
 -- | Defined in recent versions of Text.Read,
@@ -55,7 +55,9 @@ readMaybe s = case reads s of
 getEvent :: E.T -> Maybe Event
 getEvent e = case e of
   E.MIDIEvent (C.Cons _ch (C.Voice (V.NoteOn p v))) ->
-    Just $ (if V.fromVelocity v /= 0 then On else Off) $ V.fromPitch p
+    Just $ if V.fromVelocity v /= 0
+      then On (V.fromPitch p) (V.fromVelocity v)
+      else Off $ V.fromPitch p
   E.MIDIEvent (C.Cons _ch (C.Voice (V.NoteOff p _v))) ->
     Just $ Off $ V.fromPitch p
   E.MetaEvent (M.TextEvent str) -> case words str of
@@ -89,7 +91,7 @@ fromEvent midiChannel e = case e of
   PitchBend x y -> textCmd "pitchbend" [x, y]
   Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
   TogglePerfectPitch -> E.MetaEvent $ M.TextEvent "toggleperfectpitch"
-  On p -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity 96)
+  On p v -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity v)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
           then ""

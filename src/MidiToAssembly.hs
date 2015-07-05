@@ -91,7 +91,7 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
       M.StereoPanning a -> RTB.delay dt <$> go' (fn { stereoPanning = Just a })
       M.PitchBend a b -> RTB.delay dt <$> go' (fn { pitchBend = Just (a, b) })
       M.Tempo a -> RTB.cons dt (Tempo a) <$> go' fn
-      M.On p -> case findOff p rtb' of
+      M.On p _ -> case findOff p rtb' of
         Nothing -> Left
           ( NNC.add posn dt
           , "simplify: note-on with pitch " ++ show p ++ " has no note-off"

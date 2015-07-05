@@ -3,7 +3,7 @@
 release := $(shell release/version)
 
 .PHONY: all osx linux win32
-all: release/${release}-osx-x64.zip release/${release}-linux-x64.tar.gz release/${release}-win32-x86.zip
+all: osx linux win32
 osx: release/${release}-osx-x64.zip
 linux: release/${release}-linux-x64.tar.gz
 win32: release/${release}-win32-x86.zip
