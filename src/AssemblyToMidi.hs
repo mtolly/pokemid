@@ -34,7 +34,7 @@ loopFormToMidi ch (begin, loop) = let
           $ go inLoop speed vol octave is
       DNote tks d -> let
         pitch = fromEnum d
-        in RTB.cons 0 (M.On pitch midiVelocity)
+        in RTB.cons 0 (M.On pitch 96)
           $ RTB.cons (ticksToLen tks) (M.Off pitch)
           $ go inLoop speed vol octave is
       Rest tks -> RTB.delay (ticksToLen tks) $ go inLoop speed vol octave is
@@ -56,8 +56,8 @@ loopFormToMidi ch (begin, loop) = let
             -- This maps [0 .. 15] to [7, 15 .. 127].
   in go
     False -- is in loop
-    (error "loopFormToMidi: note speed not defined") -- speed
-    (error "loopFormToMidi: note volume not defined") -- volume
+    (error $ "loopFormToMidi: note speed not defined in " ++ show ch) -- speed
+    (error $ "loopFormToMidi: note volume not defined in " ++ show ch) -- volume
     3 -- octave (don't rely on this default)
     begin -- list of instructions to process
 
