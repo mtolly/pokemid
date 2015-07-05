@@ -58,7 +58,7 @@ optimize name (begin, loop) = let
     possible = do
       sub <- possibleSubs mainCode
       let newMain = replaceSub sub subName mainCode
-          subCode = [Left $ LocalLabel subName] ++ sub ++ [Left EndChannel]
+          subCode = [Left $ Label False subName] ++ sub ++ [Left EndChannel]
           savedBytes = size mainCode - size newMain - size subCode
       guard $ savedBytes > 0
       return (savedBytes, (subsCode ++ subCode, newMain))
@@ -69,12 +69,12 @@ optimize name (begin, loop) = let
       else let
         (bestSubs, bestMain) = snd $ maximumBy (comparing fst) possible
         in go isLoop (subNumber + 1) bestSubs bestMain
-  optBegin = go False 0 [] $ [Left $ Label name] ++ map Right begin ++ case loop of
+  optBegin = go False 0 [] $ [Left $ Label True name] ++ map Right begin ++ case loop of
     Nothing -> [Left EndChannel]
     Just _  -> []
   optLoop = case loop of
     Nothing -> []
     Just l  -> go True 0 [] $
-      [Left $ LocalLabel loopName] ++ map Right l ++ [Left $ LoopChannel 0 loopName]
+      [Left $ Label False loopName] ++ map Right l ++ [Left $ LoopChannel 0 loopName]
   loopName = name ++ "_loop"
   in optBegin ++ optLoop

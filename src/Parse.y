@@ -74,8 +74,8 @@ Inst :: { Instruction Int }
      | dutycycle int { DutyCycle $2 }
 
 Control :: { Control String }
-        : label ':' ':' { Label $1 }
-        | label ':' { Label $1 }
+        : label ':' ':' { Label True $1 }
+        | label ':' { Label False $1 }
         | '.' label { LocalLabel $2 }
         | '.' label ':' { LocalLabel $2 }
         | loopchannel int ',' label { LoopChannel $2 $4 }

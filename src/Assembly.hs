@@ -61,7 +61,7 @@ data Instruction t
 type LoopForm t = ([Instruction t], Maybe [Instruction t])
 
 data Control label
-  = Label       label
+  = Label       Bool label -- ^ Bool is true if label is exported
   | LocalLabel  label
   | LoopChannel Int label
   | CallChannel label
@@ -72,7 +72,7 @@ type AsmLine = Either (Control String) (Instruction Int)
 
 printAsm :: AsmLine -> String
 printAsm (Left c) = case c of
-  Label       l   -> l ++ "::"
+  Label     b l   -> l ++ if b then "::" else ":"
   LocalLabel  l   -> "." ++ l
   LoopChannel n l -> makeInstruction "loopchannel" [show n, l]
   CallChannel l   -> makeInstruction "callchannel" [l]

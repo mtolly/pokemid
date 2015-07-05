@@ -29,14 +29,14 @@ localToGlobal insts = let
   splitScopes [] = []
   splitScopes (x : xs) = case break isGlobal xs of
     (s, rest) -> (x : s) : splitScopes rest
-  isGlobal (Left (Label _)) = True
-  isGlobal _                = False
+  isGlobal (Left (Label _ _)) = True
+  isGlobal _                  = False
   fixScope (s, i) = let
     -- For each scope, find all the local labels inside it.
     -- A local label should shadow a global label with the same name.
     locals = [ l | Left (LocalLabel l) <- s ]
     in flip map s $ \e -> case e of
-      Left (LocalLabel lbl) -> Left $ Label $ fromLocal lbl
+      Left (LocalLabel lbl) -> Left $ Label False $ fromLocal lbl
       Left c                -> Left $ flip fmap c $ \lbl ->
         if lbl `elem` locals then fromLocal lbl else lbl
       Right inst            -> Right inst
@@ -47,13 +47,13 @@ localToGlobal insts = let
 -- Will crash if given local labels; use localToGlobal first.
 makeGraph :: Ord s => [Either (Control s) (Instruction t)] -> Graph s t
 makeGraph asm = let
-  labels = [ s | Left (Label s) <- asm ]
+  labels = [ s | Left (Label _ s) <- asm ]
   findLabel l = drop 1 $ dropWhile (not . isLabel l) asm
-  isLabel l (Left (Label l')) = l == l'
+  isLabel l (Left (Label _ l')) = l == l'
   isLabel _ _                 = False
   pathToBlock [] = End
   pathToBlock (Left c : rest) = case c of
-    Label l -> Goto l
+    Label _ l -> Goto l
     LocalLabel _ -> error
       "makeGraph: panic! encountered a local label. call localToGlobal first"
     LoopChannel 0 l -> Goto l
