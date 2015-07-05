@@ -91,17 +91,22 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
       M.StereoPanning a -> RTB.delay dt <$> go' (fn { stereoPanning = Just a })
       M.PitchBend a b -> RTB.delay dt <$> go' (fn { pitchBend = Just (a, b) })
       M.Tempo a -> RTB.cons dt (Tempo a) <$> go' fn
-      M.On p _ -> case findOff p rtb' of
+      M.On p vel -> case findOff p rtb' of
         Nothing -> Left
           ( NNC.add posn dt
           , "simplify: note-on with pitch " ++ show p ++ " has no note-off"
           )
         Just len -> RTB.cons dt
-          (Note $ fn { pitch = readPitch ch p, noteLength = len })
+          (Note fn
+            { pitch = readPitch ch p
+            , noteLength = len
+            , noteType = (velToVol vel, snd $ noteType fn)
+            })
           <$> go' (fn { pitchBend = Nothing })
       M.End -> RTB.cons dt End <$> go' fn
       M.TogglePerfectPitch -> RTB.cons dt TogglePerfectPitch <$> go' fn
       where go' fn' = go (NNC.add posn dt) fn' rtb'
+            velToVol vel = vel `quot` 8
 
 splitLoop :: (NNC.C t) =>
   RTB.T t (Simple t) -> (RTB.T t (Simple t), Maybe (RTB.T t (Simple t)))
