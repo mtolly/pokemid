@@ -141,3 +141,24 @@ For MIDI to assembly, the MIDI file should be in the following format:
     * 16: `mutedsnare2`
     * 17: `mutedsnare3`
     * 18: `mutedsnare4`
+
+  * Assembly `notetype` volumes are encoded as MIDI note velocities as follows:
+
+    * Assembly 0: MIDI 1 to 7
+    * Assembly 1: MIDI 8 to 15
+    * Assembly 2: MIDI 16 to 23
+    * Assembly 3: MIDI 24 to 31
+    * Assembly 4: MIDI 32 to 39
+    * Assembly 5: MIDI 40 to 47
+    * Assembly 6: MIDI 48 to 55
+    * Assembly 7: MIDI 56 to 63
+    * Assembly 8: MIDI 64 to 71
+    * Assembly 9: MIDI 72 to 79
+    * Assembly 10: MIDI 80 to 87
+    * Assembly 11: MIDI 88 to 95
+    * Assembly 12: MIDI 96 to 103
+    * Assembly 13: MIDI 104 to 111
+    * Assembly 14: MIDI 112 to 119
+    * Assembly 15: MIDI 120 to 127
+
+    That is, each assembly volume gets 8 MIDI velocities, except assembly 0 which gets 7.
