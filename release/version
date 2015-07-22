@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 cabals = Dir['*.cabal']
 throw "Couldn't find a .cabal file" unless cabals.length == 1
-File.read(cabals[0]).match(/^version:\s+([0-9\.]+)/) do |md|
+File.read(cabals[0]).match(/^version:\s+([0-9\.]+)/i) do |md|
   puts cabals[0].gsub('.cabal', "-v#{md[1]}")
   true
 end or throw "Couldn't find the package version"
