@@ -1,36 +1,37 @@
 {-# LANGUAGE CPP #-}
 module Main (main) where
 
-import Paths_pokemid (version)
-import Data.Version (showVersion)
-import System.Environment (getArgs, getProgName)
+import           Data.Version             (showVersion)
+import           Paths_pokemid            (version)
+import           System.Environment       (getArgs, getProgName)
 
-import qualified Scan
-import qualified Parse
 import qualified Assembly
-import qualified Graph
-import qualified Midi
 import qualified AssemblyToMidi
-import qualified MidiToAssembly
 import qualified Clean
 import qualified Emit
 import qualified Error
+import qualified Graph
+import qualified Midi
+import qualified MidiToAssembly
+import qualified Parse
+import qualified Scan
 
-import qualified Sound.MIDI.File.Load as Load
-import qualified Sound.MIDI.File.Save as Save
-import Sound.MIDI.Parser.Report (T(..))
+import qualified Sound.MIDI.File.Load     as Load
+import qualified Sound.MIDI.File.Save     as Save
+import           Sound.MIDI.Parser.Report (T (..))
 
-import System.IO (stderr, hPutStrLn, withFile, IOMode(..))
-import System.Exit (exitFailure)
-import Control.Exception (evaluate)
+import           Control.Exception        (evaluate)
+import           System.Exit              (exitFailure)
+import           System.IO                (IOMode (..), hPutStrLn, stderr,
+                                           withFile)
 
 #if __GLASGOW_HASKELL__ < 710
-import Control.Applicative ((<$>))
+import           Control.Applicative      ((<$>))
 #endif
-import qualified Data.Map as Map
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString          as B
+import qualified Data.ByteString.Char8    as B8
+import qualified Data.ByteString.Lazy     as BL
+import qualified Data.Map                 as Map
 
 -- | Later versions of Data.ByteString.Lazy define this.
 toStrict :: BL.ByteString -> B.ByteString

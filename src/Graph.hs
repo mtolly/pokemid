@@ -4,10 +4,10 @@ as an intermediate form on the way to a 'LoopForm'.
 -}
 module Graph where
 
-import Assembly
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
+import           Assembly
+import qualified Data.Map   as Map
+import           Data.Maybe (fromMaybe)
+import qualified Data.Set   as Set
 
 -- | A basic block which ends in an optional branch.
 data Block s t
@@ -50,26 +50,26 @@ makeGraph asm = let
   labels = [ s | Left (Label _ s) <- asm ]
   findLabel l = drop 1 $ dropWhile (not . isLabel l) asm
   isLabel l (Left (Label _ l')) = l == l'
-  isLabel _ _                 = False
+  isLabel _ _                   = False
   pathToBlock [] = End
   pathToBlock (Left c : rest) = case c of
     Label _ l -> Goto l
     LocalLabel _ -> error
       "makeGraph: panic! encountered a local label. call localToGlobal first"
-    LoopChannel 0 l -> Goto l
-    LoopChannel n l -> Loop n l $ pathToBlock rest
-    CallChannel l -> Call l $ pathToBlock rest
-    EndChannel -> End
+    SoundLoop 0 l -> Goto l
+    SoundLoop n l -> Loop n l $ pathToBlock rest
+    SoundCall l -> Call l $ pathToBlock rest
+    SoundRet -> End
   pathToBlock (Right i : rest) = Inst i $ pathToBlock rest
   in Map.fromList $ zip labels $ map (pathToBlock . findLabel) labels
 
 nextLabel :: Block s t -> Maybe s
 nextLabel b = case b of
-  Inst _ b' -> nextLabel b'
-  Call _ b' -> nextLabel b'
+  Inst _ b'   -> nextLabel b'
+  Call _ b'   -> nextLabel b'
   Loop _ _ b' -> nextLabel b'
-  End -> Nothing
-  Goto l -> Just l
+  End         -> Nothing
+  Goto l      -> Just l
 
 {- |
 \"Runs\" the music graph to convert one channel into a simple 'LoopForm'.

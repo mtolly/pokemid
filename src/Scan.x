@@ -3,6 +3,8 @@
 module Scan (scan, Token(..), AlexPosn(..)) where
 
 import qualified Assembly
+import           Data.Bits  (bit)
+import           Data.Maybe (fromJust)
 }
 
 %wrapper "posn"
@@ -15,29 +17,28 @@ tokens :-
 [\n\r] { emit $ const Newline }
 \, { emit $ const Comma }
 
-[0-9]+ { emit $ Int . read }
-[CDEFGAB][_\#] { emit $ Key . Assembly.readKey }
-snare[1-9]      { emit $ Drum . Assembly.readDrum }
-triangle[1-3]   { emit $ Drum . Assembly.readDrum }
-cymbal[1-3]     { emit $ Drum . Assembly.readDrum }
-mutedsnare[1-4] { emit $ Drum . Assembly.readDrum }
+\-? [0-9]+ { emit $ Int . read }
+\% [01]+ { emit $ Int . readBinary . drop 1 }
+[CDEFGAB][_\#] { emit $ Key . fromJust . Assembly.readKey }
 
 rest { emit $ const Rest }
-notetype { emit $ const NoteType }
-dspeed { emit $ const DSpeed }
+note_type { emit $ const NoteType }
+note { emit $ const Note }
+drum_note { emit $ const DrumNote }
+drum_speed { emit $ const DrumSpeed }
 octave { emit $ const Octave }
 vibrato { emit $ const Vibrato }
-duty { emit $ const Duty }
 volume { emit $ const Volume }
-stereopanning { emit $ const StereoPanning }
-pitchbend { emit $ const PitchBend }
+stereo_panning { emit $ const StereoPanning }
+pitch_slide { emit $ const PitchSlide }
 tempo { emit $ const Tempo }
-loopchannel { emit $ const LoopChannel }
-callchannel { emit $ const CallChannel }
-endchannel { emit $ const EndChannel }
-toggleperfectpitch { emit $ const TogglePerfectPitch }
-executemusic { emit $ const ExecuteMusic }
-dutycycle { emit $ const DutyCycle }
+sound_loop { emit $ const SoundLoop }
+sound_call { emit $ const SoundCall }
+sound_ret { emit $ const SoundRet }
+toggle_perfect_pitch { emit $ const TogglePerfectPitch }
+execute_music { emit $ const ExecuteMusic }
+duty_cycle { emit $ const DutyCycle }
+duty_cycle_pattern { emit $ const DutyCyclePattern }
 
 [A-Za-z0-9_]+ { emit Label }
 \: { emit $ const Colon }
@@ -55,29 +56,32 @@ data Token
   | Colon
   | Int Int
   | Key Assembly.Key
-  | Drum Assembly.Drum
   | Label String
   | Note
-  | DNote
+  | DrumNote
   | Rest
   | NoteType
-  | DSpeed
+  | DrumSpeed
   | Octave
   | Vibrato
-  | Duty
   | Volume
   | StereoPanning
-  | PitchBend
+  | PitchSlide
   | Tempo
-  | LoopChannel
-  | CallChannel
-  | EndChannel
+  | SoundLoop
+  | SoundCall
+  | SoundRet
   | TogglePerfectPitch
   | ExecuteMusic
   | DutyCycle
+  | DutyCyclePattern
   deriving (Eq, Ord, Show, Read)
 
 scan :: String -> [(AlexPosn, Token)]
 scan = alexScanTokens
+
+-- takes a string of 0s and 1s, reads as unsigned int
+readBinary :: String -> Int
+readBinary = sum . map (\(i, b) -> bit i * read [b]) . zip [0..] . reverse
 
 }

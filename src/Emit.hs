@@ -4,24 +4,24 @@ using subroutines to shrink repeated sections of code.
 -}
 module Emit where
 
-import Assembly
-import Data.List.Split (splitOn)
-import Data.List (nub, maximumBy, intercalate)
-import Data.Ord (comparing)
-import Control.Monad (guard)
-import Data.Maybe (listToMaybe, mapMaybe)
+import           Assembly
+import           Control.Monad   (guard)
+import           Data.List       (intercalate, maximumBy, nub)
+import           Data.List.Split (splitOn)
+import           Data.Maybe      (listToMaybe, mapMaybe)
+import           Data.Ord        (comparing)
 
 possibleSubs :: [AsmLine] -> [[AsmLine]]
 possibleSubs asm = let
-  isCall (Left (CallChannel {})) = True
-  isCall _                       = False
+  isCall (Left (SoundCall {})) = True
+  isCall _                     = False
   -- Returns all unique subroutines we should look at which start with sub.
   growSub :: [[AsmLine]] -> [AsmLine] -> [[AsmLine]]
   growSub []                     _   = error "possibleSubs: no code???"
   growSub [_]                    _   = error "possibleSubs: sub doesn't appear?"
   growSub [_, _]                 _   = [] -- sub only appears once
   growSub (chunk : chunks) sub = let
-    isLong = sum (map asmSize sub) > asmSize (Left $ CallChannel {})
+    isLong = sum (map asmSize sub) > asmSize (Left $ SoundCall "")
     -- consistentNext is (Just x) if all of chunks start with x
     consistentNext = do
       nextInsts <- mapM listToMaybe chunks
@@ -45,7 +45,7 @@ possibleSubs asm = let
 
 replaceSub :: [AsmLine] -> String -> [AsmLine] -> [AsmLine]
 replaceSub sub name asm =
-  intercalate [Left $ CallChannel name] $ splitOn sub asm
+  intercalate [Left $ SoundCall name] $ splitOn sub asm
 
 optimize :: String -> LoopForm Int -> [AsmLine]
 optimize name (begin, loop) = let
@@ -58,7 +58,7 @@ optimize name (begin, loop) = let
     possible = do
       sub <- possibleSubs mainCode
       let newMain = replaceSub sub subName mainCode
-          subCode = [Left $ Label False subName] ++ sub ++ [Left EndChannel]
+          subCode = [Left $ Label False subName] ++ sub ++ [Left SoundRet]
           savedBytes = size mainCode - size newMain - size subCode
       guard $ savedBytes > 0
       return (savedBytes, (subsCode ++ subCode, newMain))
@@ -70,11 +70,11 @@ optimize name (begin, loop) = let
         (bestSubs, bestMain) = snd $ maximumBy (comparing fst) possible
         in go isLoop (subNumber + 1) bestSubs bestMain
   optBegin = go False 0 [] $ [Left $ Label True name] ++ map Right begin ++ case loop of
-    Nothing -> [Left EndChannel]
+    Nothing -> [Left SoundRet]
     Just _  -> []
   optLoop = case loop of
     Nothing -> []
     Just l  -> go True 0 [] $
-      [Left $ Label False loopName] ++ map Right l ++ [Left $ LoopChannel 0 loopName]
+      [Left $ Label False loopName] ++ map Right l ++ [Left $ SoundLoop 0 loopName]
   loopName = name ++ "_loop"
   in optBegin ++ optLoop

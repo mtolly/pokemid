@@ -16,24 +16,25 @@ import qualified Scan as S
   '.' { (_, S.Dot) }
   int { (_, S.Int $$) }
   key { (_, S.Key $$) }
-  drum { (_, S.Drum $$) }
   label { (_, S.Label $$) }
   rest { (_, S.Rest) }
-  notetype { (_, S.NoteType) }
-  dspeed { (_, S.DSpeed) }
+  note_type { (_, S.NoteType) }
+  drum_speed { (_, S.DrumSpeed) }
+  note { (_, S.Note) }
+  drum_note { (_, S.DrumNote) }
   octave { (_, S.Octave) }
   vibrato { (_, S.Vibrato) }
-  duty { (_, S.Duty) }
   volume { (_, S.Volume) }
-  stereopanning { (_, S.StereoPanning) }
-  pitchbend { (_, S.PitchBend) }
+  stereo_panning { (_, S.StereoPanning) }
+  pitch_slide { (_, S.PitchSlide) }
   tempo { (_, S.Tempo) }
-  loopchannel { (_, S.LoopChannel) }
-  callchannel { (_, S.CallChannel) }
-  endchannel { (_, S.EndChannel) }
-  toggleperfectpitch { (_, S.TogglePerfectPitch) }
-  executemusic { (_, S.ExecuteMusic) }
-  dutycycle { (_, S.DutyCycle) }
+  sound_loop { (_, S.SoundLoop) }
+  sound_call { (_, S.SoundCall) }
+  sound_ret { (_, S.SoundRet) }
+  toggle_perfect_pitch { (_, S.TogglePerfectPitch) }
+  execute_music { (_, S.ExecuteMusic) }
+  duty_cycle { (_, S.DutyCycle) }
+  duty_cycle_pattern { (_, S.DutyCyclePattern) }
 
 %%
 
@@ -57,30 +58,30 @@ Line :: { AsmLine }
      | Control { Left $1 }
 
 Inst :: { Instruction Int }
-     : key int { Note $1 $2 Nothing }
-     | pitchbend int ',' int Newlines key int { Note $6 $7 $ Just ($2, $4) }
-     | drum int { DNote $2 $1 }
+     : note key ',' int { Note $2 $4 Nothing }
+     | pitch_slide int ',' int ',' key Newlines note key ',' int { Note $9 $11 $ Just ($2, $4, $6) }
+     | drum_note int ',' int { DrumNote (toEnum ($2 - 1)) $4 }
      | rest int { Rest $2 }
-     | notetype int ',' int ',' int { NoteType $2 $4 $6 }
-     | dspeed int { DSpeed $2 }
+     | note_type int ',' int ',' int { NoteType $2 $4 $6 }
+     | drum_speed int { DrumSpeed $2 }
      | octave int { Octave $2 }
      | vibrato int ',' int ',' int { Vibrato $2 $4 $6 }
-     | duty int { Duty $2 }
      | volume int ',' int { Volume $2 $4 }
-     | stereopanning int { StereoPanning $2 }
+     | stereo_panning int ',' int { StereoPanning $2 $4 }
      | tempo int { Tempo $2 }
-     | toggleperfectpitch { TogglePerfectPitch }
-     | executemusic { ExecuteMusic }
-     | dutycycle int { DutyCycle $2 }
+     | toggle_perfect_pitch { TogglePerfectPitch }
+     | execute_music { ExecuteMusic }
+     | duty_cycle int { DutyCycle $2 }
+     | duty_cycle_pattern int ',' int ',' int ',' int { DutyCyclePattern $2 $4 $6 $8 }
 
 Control :: { Control String }
         : label ':' ':' { Label True $1 }
         | label ':' { Label False $1 }
         | '.' label { LocalLabel $2 }
         | '.' label ':' { LocalLabel $2 }
-        | loopchannel int ',' label { LoopChannel $2 $4 }
-        | callchannel label { CallChannel $2 }
-        | endchannel { EndChannel }
+        | sound_loop int ',' label { SoundLoop $2 $4 }
+        | sound_call label { SoundCall $2 }
+        | sound_ret { SoundRet }
 
 {
 

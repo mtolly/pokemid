@@ -1,11 +1,5 @@
 flags: {}
 packages:
 - '.'
-extra-deps:
-- event-list-0.1.1.2
-- midi-0.2.1.5
-- non-negative-0.1.1
-- explicit-exception-0.1.7.3
-- monoid-transformer-0.0.3
-- utility-ht-0.0.10
-resolver: nightly-2015-06-28
+extra-deps: []
+resolver: lts-16.20

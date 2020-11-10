@@ -5,10 +5,10 @@ both within a single section and across the loop boundary.
 {-# LANGUAGE CPP #-}
 module Clean where
 
-import Assembly
-import Data.Data (toConstr)
+import           Assembly
+import           Data.Data           (toConstr)
 #if __GLASGOW_HASKELL__ < 710
-import Control.Applicative ((<$))
+import           Control.Applicative ((<$))
 #endif
 
 -- | True if the two commands are the same type of command.
@@ -19,7 +19,7 @@ sameConstructor x y = toConstr (() <$ x) == toConstr (() <$ y)
 isSetting :: Instruction t -> Bool
 isSetting x = case x of
   Note            {} -> False
-  DNote           {} -> False
+  DrumNote        {} -> False
   Rest            {} -> False
   TogglePerfectPitch -> False
   _                  -> True
@@ -52,14 +52,15 @@ cleanAssembly (x : xs) = (x :) $ cleanAssembly $ if isSetting x
 cleanLoop :: LoopForm t -> LoopForm t
 cleanLoop = let
   dummySettings =
-    [ NoteType {}
-    , DSpeed {}
-    , Octave {}
-    , Vibrato {}
-    , Duty {}
-    , Volume {}
-    , StereoPanning {}
-    , Tempo {}
+    [ NoteType 0 0 0
+    , DrumSpeed 0
+    , Octave 0
+    , Vibrato 0 0 0
+    , DutyCycle 0
+    , DutyCyclePattern 0 0 0 0
+    , Volume 0 0
+    , StereoPanning 0 0
+    , Tempo 0
     ]
   clean _       (b, Nothing) = (b, Nothing)
   clean setting (b, Just l ) = let

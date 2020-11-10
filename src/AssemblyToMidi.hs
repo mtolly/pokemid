@@ -1,16 +1,16 @@
 module AssemblyToMidi where
 
-import Assembly
-import Graph
-import qualified Midi as M
+import           Assembly
+import           Graph
+import qualified Midi                             as M
 -- base
-import Control.Monad (guard)
+import           Control.Monad                    (guard)
 -- event-list
 import qualified Data.EventList.Relative.TimeBody as RTB
 -- non-negative
-import qualified Numeric.NonNegative.Wrapper as NN
+import qualified Numeric.NonNegative.Wrapper      as NN
 -- containers
-import qualified Data.Map as Map
+import qualified Data.Map                         as Map
 
 loopFormToMidi :: Channel -> LoopForm Int -> RTB.T NN.Rational M.Event
 loopFormToMidi ch (begin, loop) = let
@@ -21,10 +21,10 @@ loopFormToMidi ch (begin, loop) = let
         Nothing -> RTB.singleton 0 M.End
         Just l  -> RTB.cons 0 M.Begin $ go True speed vol octave l
     i : is -> case i of
-      Note k tks pbend -> let
-        addBend = case pbend of
-          Just (x, y) -> RTB.cons 0 $ M.PitchBend x y
-          Nothing     -> id
+      Note k tks slide -> let
+        addBend = case slide of
+          Just (x, y, k') -> RTB.cons 0 $ M.PitchSlide x y k'
+          Nothing         -> id
         pitch = fromEnum k + 12 * case ch of
           Ch3 -> octave + 1
           _   -> octave + 2
@@ -32,7 +32,7 @@ loopFormToMidi ch (begin, loop) = let
           $ RTB.cons 0 (M.On pitch midiVelocity)
           $ RTB.cons (ticksToLen tks) (M.Off pitch)
           $ go inLoop speed vol octave is
-      DNote tks d -> let
+      DrumNote d tks -> let
         pitch = fromEnum d
         in RTB.cons 0 (M.On pitch 96)
           $ RTB.cons (ticksToLen tks) (M.Off pitch)
@@ -40,17 +40,17 @@ loopFormToMidi ch (begin, loop) = let
       Rest tks -> RTB.delay (ticksToLen tks) $ go inLoop speed vol octave is
       NoteType speed' vol' fade ->
         RTB.cons 0 (M.NoteType vol' fade) $ go inLoop speed' vol' octave is
-      DSpeed speed' -> go inLoop speed' vol octave is
+      DrumSpeed speed' -> go inLoop speed' vol octave is
       Octave octave' -> go inLoop speed vol octave' is
       Vibrato x y z -> RTB.cons 0 (M.Vibrato x y z) $ go inLoop speed vol octave is
-      Duty x -> RTB.cons 0 (M.Duty x) $ go inLoop speed vol octave is
+      DutyCycle x -> RTB.cons 0 (M.DutyCycle x) $ go inLoop speed vol octave is
+      DutyCyclePattern w x y z -> RTB.cons 0 (M.DutyCyclePattern w x y z) $ go inLoop speed vol octave is
       Volume l r -> RTB.cons 0 (M.Volume l r) $ go inLoop speed vol octave is
-      StereoPanning x -> RTB.cons 0 (M.StereoPanning x) $ go inLoop speed vol octave is
+      StereoPanning x y -> RTB.cons 0 (M.StereoPanning x y) $ go inLoop speed vol octave is
       Tempo x -> RTB.cons 0 (M.Tempo x) $ go inLoop speed vol octave is
       TogglePerfectPitch -> RTB.cons 0 M.TogglePerfectPitch $ go inLoop speed vol octave is
       -- TODO
       ExecuteMusic -> go inLoop speed vol octave is
-      DutyCycle _ -> go inLoop speed vol octave is
       where ticksToLen tks = (fromIntegral tks / 4) * (fromIntegral speed / 12)
             midiVelocity = 8 * (vol + 1) - 1
             -- This maps [0 .. 15] to [7, 15 .. 127].

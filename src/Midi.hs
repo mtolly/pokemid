@@ -2,25 +2,28 @@
 Contains the simplified view of MIDI events that we care about, along with the
 translation functions to/from \"raw\" MIDI events.
 -}
+{-# LANGUAGE ViewPatterns #-}
 module Midi where
 
-import Assembly (Channel(..))
+import           Assembly                         (Channel (..), Key, readKey,
+                                                   showKey)
 -- midi
-import qualified Sound.MIDI.File as F
-import qualified Sound.MIDI.File.Event as E
-import qualified Sound.MIDI.File.Event.Meta as M
-import qualified Sound.MIDI.General as G
-import qualified Sound.MIDI.Message.Channel as C
+import qualified Sound.MIDI.File                  as F
+import qualified Sound.MIDI.File.Event            as E
+import qualified Sound.MIDI.File.Event.Meta       as M
+import qualified Sound.MIDI.General               as G
+import qualified Sound.MIDI.Message.Channel       as C
 import qualified Sound.MIDI.Message.Channel.Voice as V
 -- event-list
 import qualified Data.EventList.Relative.TimeBody as RTB
 -- non-negative
-import qualified Numeric.NonNegative.Class as NNC
-import qualified Numeric.NonNegative.Wrapper as NN
+import qualified Numeric.NonNegative.Class        as NNC
+import qualified Numeric.NonNegative.Wrapper      as NN
 -- base
-import Data.Char (isSpace)
-import Data.List (intercalate, isInfixOf, partition)
-import Data.Maybe (fromMaybe)
+import           Data.Char                        (isSpace)
+import           Data.List                        (intercalate, isInfixOf,
+                                                   partition)
+import           Data.Maybe                       (fromMaybe)
 
 {- |
 A simplified view of the MIDI events we care about, ignoring things like MIDI
@@ -36,10 +39,11 @@ data Event
   | End
   | NoteType Int Int
   | Vibrato Int Int Int
-  | Duty Int
+  | DutyCycle Int
+  | DutyCyclePattern Int Int Int Int
   | Volume Int Int
-  | StereoPanning Int
-  | PitchBend Int Int
+  | StereoPanning Int Int
+  | PitchSlide Int Int Key
   | Tempo Int
   | TogglePerfectPitch
   | On Int Int -- ^ On pitch velocity
@@ -62,18 +66,23 @@ getEvent e = case e of
     Just $ Off $ V.fromPitch p
   E.MetaEvent (M.TextEvent str) -> case words str of
     [] -> Nothing
-    cmd : ints -> case (cmd, readMaybe $ "[" ++ concat ints ++ "]") of
+    cmd : args -> case (cmd, readMaybe $ "[" ++ concat args ++ "]") of
       ("begin"        , Just []       ) -> Just Begin
       ("end"          , Just []       ) -> Just End
       ("vibrato"      , Just [x, y, z]) -> Just $ Vibrato x y z
-      ("duty"         , Just [x]      ) -> Just $ Duty x
-      ("notetype"     , Just [_, y, z]) -> Just $ NoteType y z
-      ("notetype"     , Just [y, z]   ) -> Just $ NoteType y z
+      ("duty_cycle"    , Just [x]      ) -> Just $ DutyCycle x
+      ("duty_cycle_pattern", Just [w, x, y, z]) -> Just $ DutyCyclePattern w x y z
+      ("note_type"     , Just [_, y, z]) -> Just $ NoteType y z
+      ("note_type"     , Just [y, z]   ) -> Just $ NoteType y z
       ("volume"       , Just [x, y]   ) -> Just $ Volume x y
-      ("stereopanning", Just [x]      ) -> Just $ StereoPanning x
-      ("pitchbend"    , Just [x, y]   ) -> Just $ PitchBend x y
-      ("toggleperfectpitch", Just []  ) -> Just TogglePerfectPitch
-      _                                 -> Nothing
+      ("stereo_panning", Just [x, y]   ) -> Just $ StereoPanning x y
+      ("toggle_perfect_pitch", Just []  ) -> Just TogglePerfectPitch
+      _                                 -> case cmd of
+        "pitch_slide" -> case map (reverse . dropWhile (== ',') . reverse) args of
+          [readMaybe -> Just x, readMaybe -> Just y, readKey -> Just k] ->
+            Just $ PitchSlide x y k
+          _ -> Nothing
+        _ -> Nothing
   E.MetaEvent (M.SetTempo t) ->
     Just $ Tempo $ round $ (toRational t / 1000000) * 320
   _ -> Nothing
@@ -83,19 +92,20 @@ fromEvent midiChannel e = case e of
   Off p -> voice0 $ V.NoteOff (V.toPitch p) (V.toVelocity 0)
   Begin -> E.MetaEvent $ M.TextEvent "begin"
   End -> E.MetaEvent $ M.TextEvent "end"
-  NoteType x y -> textCmd "notetype" [x, y]
-  Vibrato x y z -> textCmd "vibrato" [x, y, z]
-  Duty x -> textCmd "duty" [x]
-  Volume x y -> textCmd "volume" [x, y]
-  StereoPanning x -> textCmd "stereopanning" [x]
-  PitchBend x y -> textCmd "pitchbend" [x, y]
+  NoteType x y -> textCmd "note_type" $ map show [x, y]
+  Vibrato x y z -> textCmd "vibrato" $ map show [x, y, z]
+  DutyCycle x -> textCmd "duty_cycle" [show x]
+  DutyCyclePattern w x y z -> textCmd "duty_cycle_pattern" $ map show [w, x, y, z]
+  Volume x y -> textCmd "volume" $ map show [x, y]
+  StereoPanning x y -> textCmd "stereo_panning" $ map show [x, y]
+  PitchSlide x y k -> textCmd "pitch_slide" [show x, show y, showKey k]
   Tempo x -> E.MetaEvent $ M.SetTempo $ round $ (toRational x / 320) * 1000000
-  TogglePerfectPitch -> E.MetaEvent $ M.TextEvent "toggleperfectpitch"
+  TogglePerfectPitch -> E.MetaEvent $ M.TextEvent "toggle_perfect_pitch"
   On p v -> voice0 $ V.NoteOn (V.toPitch p) (V.toVelocity v)
   where voice0 = E.MIDIEvent . C.Cons midiChannel . C.Voice
         textCmd cmd args = E.MetaEvent $ M.TextEvent $ cmd ++ if null args
           then ""
-          else " " ++ intercalate ", " (map show args)
+          else " " ++ intercalate ", " args
 
 trackName :: (NNC.C t) => RTB.T t E.T -> Maybe String
 trackName rtb = case RTB.viewL $ RTB.collectCoincident rtb of

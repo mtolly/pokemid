@@ -1,15 +1,15 @@
 {-# LANGUAGE BangPatterns #-}
 module Error where
 
-import MidiToAssembly (Simple(..))
-import Midi (isChannelTrack)
-import qualified Numeric.NonNegative.Wrapper as NN
-import qualified Numeric.NonNegative.Class as NNC
 import qualified Data.EventList.Relative.TimeBody as RTB
-import qualified Sound.MIDI.File as F
-import qualified Sound.MIDI.File.Event as E
-import qualified Sound.MIDI.File.Event.Meta as M
-import Data.Maybe (mapMaybe)
+import           Data.Maybe                       (mapMaybe)
+import           Midi                             (isChannelTrack)
+import           MidiToAssembly                   (Simple (..))
+import qualified Numeric.NonNegative.Class        as NNC
+import qualified Numeric.NonNegative.Wrapper      as NN
+import qualified Sound.MIDI.File                  as F
+import qualified Sound.MIDI.File.Event            as E
+import qualified Sound.MIDI.File.Event.Meta       as M
 
 getTempoTrack :: F.T -> RTB.T NN.Rational E.T
 getTempoTrack (F.Cons F.Parallel (F.Ticks res) trks) = let

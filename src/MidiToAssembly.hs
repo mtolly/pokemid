@@ -1,24 +1,25 @@
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE CPP #-}
 module MidiToAssembly where
 
-import qualified Assembly as A
-import qualified Midi as M
+import qualified Assembly                         as A
+import qualified Midi                             as M
 -- event-list
 import qualified Data.EventList.Relative.TimeBody as RTB
 -- non-negative
-import qualified Numeric.NonNegative.Class as NNC
-import qualified Numeric.NonNegative.Wrapper as NN
+import qualified Numeric.NonNegative.Class        as NNC
+import qualified Numeric.NonNegative.Wrapper      as NN
 -- containers
-import qualified Data.Set as Set
+import qualified Data.Set                         as Set
 -- base
-import Control.Applicative ((<|>))
+import           Control.Applicative              ((<|>))
 #if __GLASGOW_HASKELL__ < 710
-import Control.Applicative ((<$>))
+import           Control.Applicative              ((<$>))
 #endif
-import Control.Monad (guard)
-import Data.Maybe (mapMaybe, listToMaybe, catMaybes, fromJust)
-import Data.Ratio (numerator, denominator)
+import           Control.Monad                    (guard)
+import           Data.Maybe                       (catMaybes, fromJust,
+                                                   listToMaybe, mapMaybe)
+import           Data.Ratio                       (denominator, numerator)
 
 -- | A more standard fraction string.
 showRat :: NN.Rational -> String
@@ -27,23 +28,25 @@ showRat nnr = let
   in show (numerator r) ++ "/" ++ show (denominator r)
 
 data FullNote a = FullNote
-  { vibrato       :: (Int, Int, Int)
-  , duty          :: Int
-  , volume        :: Maybe (Int, Int)
-  , stereoPanning :: Maybe Int
-  , pitchBend     :: A.PitchBend
-  , pitch         :: Either (Int, A.Key) A.Drum
-  , noteType      :: (Int, Int)
-  , noteLength    :: a
+  { vibrato          :: (Int, Int, Int)
+  , dutyCycle        :: Int
+  , dutyCyclePattern :: Maybe (Int, Int, Int, Int)
+  , volume           :: Maybe (Int, Int)
+  , stereoPanning    :: Maybe (Int, Int)
+  , pitchSlide       :: A.PitchSlide
+  , pitch            :: Either (Int, A.Key) A.Drum
+  , noteType         :: (Int, Int)
+  , noteLength       :: a
   } deriving (Eq, Ord, Show, Read, Functor)
 
 defaultNote :: FullNote a
 defaultNote = FullNote
   { vibrato = (0, 0, 0)
-  , duty = 0
+  , dutyCycle = 0
+  , dutyCyclePattern = Nothing
   , volume = Nothing
   , stereoPanning = Nothing
-  , pitchBend = Nothing
+  , pitchSlide = Nothing
   , pitch = undefined
   , noteType = (10, 0)
   , noteLength = undefined
@@ -71,7 +74,7 @@ readPitch _   p = case quotRem p 12 of (q, r) -> Left (q - 2, toEnum r)
 findOff :: (NNC.C t) => Int -> RTB.T t M.Event -> Maybe t
 findOff p rtb = let
   match (M.Off p') | p == p' = True
-  match _                    = False
+  match _          = False
   in case RTB.span (not . match) rtb of
     (before, after) -> do
       ((dt, _), _) <- RTB.viewL after
@@ -86,10 +89,11 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
       M.Begin -> RTB.cons dt Begin <$> go' fn
       M.NoteType a b -> RTB.delay dt <$> go' (fn { noteType = (a, b) })
       M.Vibrato a b c -> RTB.delay dt <$> go' (fn { vibrato = (a, b, c) })
-      M.Duty a -> RTB.delay dt <$> go' (fn { duty = a })
+      M.DutyCycle a -> RTB.delay dt <$> go' (fn { dutyCycle = a })
+      M.DutyCyclePattern a b c d -> RTB.delay dt <$> go' (fn { dutyCyclePattern = Just (a, b, c, d) })
       M.Volume a b -> RTB.delay dt <$> go' (fn { volume = Just (a, b) })
-      M.StereoPanning a -> RTB.delay dt <$> go' (fn { stereoPanning = Just a })
-      M.PitchBend a b -> RTB.delay dt <$> go' (fn { pitchBend = Just (a, b) })
+      M.StereoPanning a b -> RTB.delay dt <$> go' (fn { stereoPanning = Just (a, b) })
+      M.PitchSlide a b k -> RTB.delay dt <$> go' (fn { pitchSlide = Just (a, b, k) })
       M.Tempo a -> RTB.cons dt (Tempo a) <$> go' fn
       M.On p vel -> case findOff p rtb' of
         Nothing -> Left
@@ -102,7 +106,7 @@ simplify ch = go NNC.zero defaultNote . RTB.normalize where
             , noteLength = len
             , noteType = (velToVol vel, snd $ noteType fn)
             })
-          <$> go' (fn { pitchBend = Nothing })
+          <$> go' (fn { pitchSlide = Nothing })
       M.End -> RTB.cons dt End <$> go' fn
       M.TogglePerfectPitch -> RTB.cons dt TogglePerfectPitch <$> go' fn
       where go' fn' = go (NNC.add posn dt) fn' rtb'
@@ -195,26 +199,27 @@ encode ch = go 0 12 0 0 . RTB.normalize where
               Just $ case vibrato fn of (a, b, c) -> A.Vibrato a b c
             , do
               guard $ ch `elem` [A.Ch1, A.Ch2]
-              Just $ A.Duty $ duty fn
+              Just $ A.DutyCycle $ dutyCycle fn
+            , (\(a, b, c, d) -> A.DutyCyclePattern a b c d) <$> dutyCyclePattern fn
             , uncurry A.Volume <$> volume fn
-            , A.StereoPanning <$> stereoPanning fn
+            , uncurry A.StereoPanning <$> stereoPanning fn
             , Just $ if ch == A.Ch4
-              then A.DSpeed spd
+              then A.DrumSpeed spd
               else uncurry (A.NoteType spd) $ noteType fn
             , either (Just . A.Octave . fst) (const Nothing) $ pitch fn
             , Just $ case pitch fn of
-              Left (_, k) -> A.Note k tks $ pitchBend fn
-              Right drum  -> A.DNote tks drum
+              Left (_, k) -> A.Note k tks $ pitchSlide fn
+              Right drum  -> A.DrumNote drum tks
             ] ++ result
       where rest = case encodeSum ntSpeed dt of
               Nothing -> Left (posn, "encode: couldn't make rest with length " ++ showRat dt ++ " beats")
               Just ps -> Right $ concatMap (\(spd, tks) -> [restSpeed spd, A.Rest tks]) ps
             restSpeed spd = if ch == A.Ch4
-              then A.DSpeed   spd
+              then A.DrumSpeed   spd
               else A.NoteType spd ntVolume ntFade
-            getSpeed (A.DSpeed   s    ) = Just s
-            getSpeed (A.NoteType s _ _) = Just s
-            getSpeed _                  = Nothing
+            getSpeed (A.DrumSpeed   s    ) = Just s
+            getSpeed (A.NoteType s _ _)    = Just s
+            getSpeed _                     = Nothing
             defaultSpeed = rest >>= \r -> return $ case mapMaybe getSpeed $ reverse r of
               spd : _ -> spd
               []      -> ntSpeed
