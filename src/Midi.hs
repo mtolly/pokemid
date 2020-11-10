@@ -22,7 +22,7 @@ import qualified Numeric.NonNegative.Wrapper      as NN
 -- base
 import           Data.Char                        (isSpace)
 import           Data.List                        (intercalate, isInfixOf,
-                                                   partition)
+                                                   partition, sortOn)
 import           Data.Maybe                       (fromMaybe)
 
 {- |
@@ -124,12 +124,12 @@ getTracks :: F.T -> [(String, RTB.T NN.Rational Event)]
 getTracks (F.Cons F.Parallel (F.Ticks res) trks) = let
   ticksToRat = RTB.mapTime $ \t -> fromIntegral t / fromIntegral res
   name t = fromMaybe (error "getTracks: track without name") $ trackName t
-  isCh1 str = drop (length str - 3) str == "Ch1"
   in case partition isChannelTrack $ map ticksToRat trks of
-    (trks', tempos) -> case partition (isCh1 . name) trks' of
-      ([ch1], notCh1) -> (name ch1, RTB.mapMaybe getEvent $ RTB.merge tempo ch1)
-        : map (\t -> (name t, RTB.mapMaybe getEvent t)) notCh1
-      _ -> error "getTracks: no Ch1 track to attach tempos to"
+    (trks', tempos) -> case sortOn (getNamedChannel . name) trks' of
+      firstChannel : restChannels
+        -> (name firstChannel, RTB.mapMaybe getEvent $ RTB.merge tempo firstChannel)
+        : map (\t -> (name t, RTB.mapMaybe getEvent t)) restChannels
+      [] -> error "getTracks: no tracks found, can't attach tempos"
       where tempo = foldr RTB.merge RTB.empty tempos
 getTracks _ = error "getTracks: not a type-1 ticks-based MIDI"
 

@@ -5,9 +5,9 @@ set -u
 for asm in `dirname $0`/fixtures/*.asm; do
   echo " => $asm"
   echo "asm -> mid"
-  dist/build/pokemid/pokemid $asm $asm.mid
+  pokemid $asm $asm.mid
   echo "mid -> asm"
-  dist/build/pokemid/pokemid $asm.mid $asm.new.asm
+  pokemid $asm.mid $asm.new.asm
   rm $asm.mid
   rm $asm.new.asm
 done

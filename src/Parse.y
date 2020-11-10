@@ -80,6 +80,7 @@ Control :: { Control String }
         | '.' label { LocalLabel $2 }
         | '.' label ':' { LocalLabel $2 }
         | sound_loop int ',' label { SoundLoop $2 $4 }
+        | sound_loop int ',' '.' label { SoundLoop $2 $5 }
         | sound_call label { SoundCall $2 }
         | sound_ret { SoundRet }
 
