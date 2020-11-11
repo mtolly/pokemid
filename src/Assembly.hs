@@ -86,7 +86,7 @@ printAsm (Right i) = case i of
       Nothing     -> ""
     note = makeInstruction "note" [showKey k, show t]
     in pb ++ note
-  DrumNote      t d   -> makeInstruction "drum_note" [show t, show $ fromEnum d + 1]
+  DrumNote      d t   -> makeInstruction "drum_note" [show $ fromEnum d + 1, show t]
   Rest          t     -> makeInstruction "rest" [show t]
   NoteType      x y z -> makeInstruction "note_type" [show x, show y, show z]
   DrumSpeed     n     -> makeInstruction "drum_speed" [show n]
