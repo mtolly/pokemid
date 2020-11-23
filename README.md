@@ -46,8 +46,9 @@ should work as well as long as you also have [GHC], [Alex], and [Happy].
 [Happy]: https://www.haskell.org/happy/
 [Cabal]: https://www.haskell.org/haskellwiki/Cabal-Install
 
-`make` uses Stack to produce a release `.zip` file.
-Ruby is also used to get the package version.
+`make` uses Stack to produce a release `.zip` file. Ruby is also required to get
+the package version. `make docker` uses Docker to build in an older Linux
+distribution for higher compatibility.
 
 ## Usage
 
