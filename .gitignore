@@ -4,3 +4,4 @@ cabal.sandbox.config
 dist/
 .vagrant/
 stack.yaml.lock
+.stack-work/
