@@ -1,62 +1,53 @@
 # Pokémon Red/Blue MIDI music converter
 
-[![Build Status](https://travis-ci.org/mtolly/pokemid.svg?branch=master)](https://travis-ci.org/mtolly/pokemid)
-
 This is a tool for the [Pokémon Red/Blue disassembly project][pokered], which
 allows editing the music tracks by exporting them to MIDI files and then
 importing them back into assembly.
 
-[pokered]: https://github.com/iimarckus/pokered
+[pokered]: https://github.com/pret/pokered
 
 Features:
 
   * Given a monophonic sequence of MIDI notes, takes care of generating `octave`
-    commands and using the right combination of `notetype` speeds and `note`
+    commands and using the right combination of `note_type` speeds and `note`
     lengths to encode MIDI durations.
 
   * Can create one-shot or looping tracks.
 
   * Changes tempo with MIDI tempo events.
 
-  * Supports the following note modifiers: `notetype`, `pitchbend`, `vibrato`,
-    `duty`, `volume`, `stereopanning`, and `toggleperfectpitch`.
+  * Supports all note modifiers used by the game's music engine.
 
   * Finds repeated sections of assembly events and breaks them out into
-    subroutines, called with `callchannel`, to save ROM space.
+    subroutines, referenced via `sound_call`, to save ROM space.
 
 Future work:
 
-  * Extend to the [pokecrystal][] project?
+  * Extend to the [pokegold][] or [pokecrystal][] projects?
 
-[pokecrystal]: https://github.com/kanzure/pokecrystal
+[pokegold]: https://github.com/pret/pokegold
+[pokecrystal]: https://github.com/pret/pokecrystal
 
-  * Possibly use `loopchannel` to further shorten the assembly code.
+  * Possibly use `sound_loop` to further shorten the assembly code.
 
 ## Build
 
-Windows/Mac/Linux executables are posted on the [releases] page. To build the
-latest code yourself:
+Windows/Mac/Linux executables are posted on the [releases] page.
 
 [releases]: https://github.com/mtolly/pokemid/releases
 
-  1. Install the [Haskell Platform], or (for advanced users)
-    [GHC] + [Alex] + [Happy] + [`cabal-install`][cabal].
-    GHC 7.4, 7.6, 7.8, and 7.10 are tested.
+To build yourself, install a Haskell development kit and build the package as
+appropriate. I use [Stack] where `stack build` is the only step, but [Cabal]
+should work as well as long as you also have [GHC], [Alex], and [Happy].
 
-[Haskell Platform]: https://www.haskell.org/platform/
+[Stack]: https://haskellstack.org/
 [GHC]: https://www.haskell.org/ghc/
 [Alex]: https://www.haskell.org/alex/
 [Happy]: https://www.haskell.org/happy/
-[cabal]: https://www.haskell.org/haskellwiki/Cabal-Install
+[Cabal]: https://www.haskell.org/haskellwiki/Cabal-Install
 
-  2. `cabal update` if necessary to download package lists.
-
-  3. In the `pokemid` directory,
-    `cabal sandbox init` if you want the installed dependencies sandboxed (recommended).
-
-  4. `cabal install` to build and install.
-    Or, `cabal build` and then move `dist/build/pokemid/pokemid(.exe)`
-    to the directory of your choice.
+`make` uses Stack to produce a release `.zip` file.
+Ruby is also used to get the package version.
 
 ## Usage
 
@@ -75,19 +66,20 @@ For MIDI to assembly, the MIDI file should be in the following format:
   * In addition to monophonic notes, you can insert engine commands which affect
     the sound using MIDI text events. Supported events are:
 
-      * `notetype <volume>, <fade>`
+      * `note_type <volume>, <fade>`
       * `vibrato <delay>, <rate>, <depth>`
-      * `duty <int>`
+      * `duty_cycle <int>`
+      * `duty_cycle_pattern <int>, <int>, <int>, <int>`
       * `volume <left>, <right>`
-      * `stereopanning <int>`
-      * `pitchbend <int>, <int>`
-      * `toggleperfectpitch`
+      * `stereo_panning <int>`
+      * `pitch_slide <int>, <int>`
+      * `toggle_perfect_pitch`
 
     For documentation on these see the [pokered] project.
     All of these events affect all notes that come after them, except the
-    `pitchbend` event which affects only the next (or coinciding) note.
+    `pitch_slide` event which affects only the next (or coinciding) note.
 
-    Note that `notetype` does not require you to supply a note encoding
+    Note that `note_type` does not require you to supply a note encoding
     speed, though you can if you wish (before the volume and fade
     parameters). It is ignored because speeds are chosen by the program
     automatically.
